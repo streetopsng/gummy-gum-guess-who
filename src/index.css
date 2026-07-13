@@ -1,0 +1,96 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #111318;
+  --color-surface: #181C24;
+  --color-surface2: #1F242F;
+  --color-surface3: #272D3A;
+  --color-amber: #F5A623;
+  --color-coral: #FF5C38;
+  --color-cream: #F0EAD6;
+  --color-green: #22C55E;
+  --color-red: #EF4444;
+  --color-blue: #3B82F6;
+  --color-white: #F4F6FA;
+  --color-muted: rgba(244,246,250,0.42);
+  --color-border: rgba(255,255,255,0.07);
+
+  --radius-lg: 14px;
+  --radius-md: 8px;
+
+  /* Custom animations */
+  --animate-row-in: rowIn 0.3s ease;
+  --animate-pulse-slow: customPulse 1.4s infinite;
+  --animate-shake: shake 0.4s ease;
+  --animate-flip-reveal: flipReveal 0.6s ease forwards;
+  --animate-pop-in: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  --animate-hint-in: hintIn 0.3s ease;
+  --animate-reveal-in: revealIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  --animate-slide-in: slideIn 0.3s ease;
+  --animate-drop-in: dropIn 0.5s ease;
+  --animate-phrase-in: phraseIn 0.6s ease 0.5s both;
+  --animate-fall: fall 1.2s ease-out forwards;
+  --animate-float: float 15s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0) translateX(0); }
+  25% { transform: translateY(-20px) translateX(10px); }
+  50% { transform: translateY(-10px) translateX(20px); }
+  75% { transform: translateY(10px) translateX(-10px); }
+}
+
+@keyframes rowIn { from{opacity:0;transform:translateX(12px)} to{opacity:1;transform:translateX(0)} }
+@keyframes customPulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.8)} }
+@keyframes shake {
+  0%,100%{transform:rotate(0) translateX(0)}
+  20%{transform:rotate(-3deg) translateX(-6px)}
+  40%{transform:rotate(3deg) translateX(6px)}
+  60%{transform:rotate(-2deg) translateX(-4px)}
+  80%{transform:rotate(2deg) translateX(4px)}
+}
+@keyframes flipReveal {
+  0%{transform:rotateY(0) scale(1)}
+  50%{transform:rotateY(90deg) scale(1.05)}
+  100%{transform:rotateY(0) scale(1)}
+}
+@keyframes popIn { from{opacity:0;transform:scale(.6)} to{opacity:1;transform:scale(1)} }
+@keyframes hintIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
+@keyframes revealIn { from{opacity:0;transform:scale(.92)} to{opacity:1;transform:scale(1)} }
+@keyframes slideIn { from{opacity:0;transform:translateX(18px)} to{opacity:1;transform:translateX(0)} }
+@keyframes dropIn { from{opacity:0;transform:translateY(-28px)} to{opacity:1;transform:translateY(0)} }
+@keyframes phraseIn { from{opacity:0;transform:scale(.85)} to{opacity:1;transform:scale(1)} }
+@keyframes fall { 0%{transform:translateY(-8px) rotate(0);opacity:1} 100%{transform:translateY(60px) rotate(360deg);opacity:0} }
+
+/* Base styling */
+html, body, #root { 
+  height: 100%; 
+  background-color: var(--color-bg); 
+  color: var(--color-white); 
+  overflow: hidden; 
+}
+
+/* Utility to hide scrollbar for certain lists */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* Global Custom Scrollbar for dark theme */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-surface3);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(244, 246, 250, 0.2);
+}
