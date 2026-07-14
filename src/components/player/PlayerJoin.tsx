@@ -1,56 +1,66 @@
 import React, { useState } from 'react';
-import { TEAM } from '../../data';
+import { COLORS, makeSVG } from '../../data';
+import type { TeamMember } from '../../data';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 
 interface PlayerJoinProps {
   onBack: () => void;
-  onJoin: (player: typeof TEAM[0]) => void;
-  onDemo: () => void;
+  onJoin: (player: TeamMember, code: string) => Promise<void>;
 }
 
-export const PlayerJoin: React.FC<PlayerJoinProps> = ({ onBack, onJoin, onDemo }) => {
+export const PlayerJoin: React.FC<PlayerJoinProps> = ({ onBack, onJoin }) => {
   const [code, setCode] = useState('');
+  const [name, setName] = useState('');
   const [nick, setNick] = useState('');
+  const [fact, setFact] = useState('');
+  const [hint, setHint] = useState('');
   const [error, setError] = useState('');
 
-  const handleJoin = () => {
-    if (!code.trim()) {
-      setError('Enter the game code your HR shared.');
+  const handleJoin = async () => {
+    if (!code.trim() || !name.trim() || !nick.trim() || !fact.trim() || !hint.trim()) {
+      setError('Please fill in all fields.');
       return;
     }
-    if (!nick.trim()) {
-      setError('Enter your codename.');
+    
+    if (/[.#$\[\]]/.test(nick)) {
+      setError('Codename cannot contain special characters like . # $ [ ]');
       return;
     }
-    const found = TEAM.find(m => m.nick.toUpperCase() === nick.trim().toUpperCase());
-    if (!found) {
-      setError('Codename not found on this team roster.');
-      return;
-    }
+
     setError('');
-    onJoin(found);
+    
+    const randomColor = COLORS[Math.floor(Math.random() * COLORS.length)];
+    const bgColors = ['#2a1a0a', '#0a1a2a', '#1a0a2a', '#0a2a1a', '#2a0a0a', '#2a1a0a', '#0a2a2a', '#2a0a1a'];
+    const randomBg = bgColors[Math.floor(Math.random() * bgColors.length)];
+    const emojiList = ['😎', '😊', '🤩', '😁', '😌', '😏', '😄', '🕵️', '🦊', '🦉'];
+    const emoji = emojiList[Math.floor(Math.random() * emojiList.length)];
+
+    const player: TeamMember = {
+      name: name.trim(),
+      nick: nick.trim(),
+      color: randomColor,
+      fact: fact.trim(),
+      hint: hint.trim(),
+      imgSrc: makeSVG(emoji, randomBg)
+    };
+
+    try {
+      await onJoin(player, code.trim().toUpperCase());
+    } catch (e: any) {
+      setError(e.message || "Failed to join game");
+    }
   };
 
   return (
-    <div className="flex flex-col h-full lg:h-full w-full min-h-screen lg:min-h-0 relative justify-center items-center px-7 py-10 gap-0">
-      <div className="text-[15px] font-black text-amber absolute top-6 left-7 z-10">GummyGum</div>
-      
-      <div className="w-full max-w-[400px] flex flex-col items-center">
-        <div className="flex items-center gap-2.5 bg-surface border border-border rounded-[40px] px-4 py-2.5 mb-7 lg:mb-8 lg:scale-110">
-          <div className="text-[24px]">🕵️</div>
-          <div>
-            <div className="text-[14px] font-bold">Guess Who?</div>
-            <div className="text-[11px] text-muted">StreetOps</div>
-          </div>
-        </div>
-        
-        <div className="text-[26px] lg:text-[32px] font-black text-center mb-1.5">Join the game</div>
+    <div className="h-full w-full relative overflow-y-auto px-5 py-8 flex flex-col">
+      <div className="w-full max-w-[400px] mx-auto flex flex-col items-center my-auto pb-8">
+        <div className="text-[26px] lg:text-[32px] font-black text-center mb-1.5 mt-4">Join the game</div>
         <div className="text-[13px] lg:text-[14px] text-muted text-center mb-7 leading-[1.5]">
-          Enter the code your HR shared and your team codename.
+          Enter the code your host shared and tell us about yourself.
         </div>
         
-        <div className="w-full flex flex-col gap-2.5">
+        <div className="w-full flex flex-col gap-3">
           <Input 
             placeholder="Game code (e.g. GW-491)" 
             maxLength={10} 
@@ -58,29 +68,35 @@ export const PlayerJoin: React.FC<PlayerJoinProps> = ({ onBack, onJoin, onDemo }
             onChange={(e) => setCode(e.target.value)}
           />
           <Input 
-            placeholder="Your codename (e.g. QuietStorm)" 
+            placeholder="Your full name (e.g. Jane Doe)" 
+            maxLength={30} 
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <Input 
+            placeholder="Codename/Nickname (e.g. QuietStorm)" 
             maxLength={20} 
             value={nick}
             onChange={(e) => setNick(e.target.value)}
+          />
+          <textarea
+            placeholder="A Fun Fact about you... (make it hard to guess!)"
+            className="w-full bg-surface/50 border border-border text-[13px] rounded-xl px-4 py-3 outline-none resize-none placeholder:text-muted/50 focus:border-amber transition-colors"
+            rows={3}
+            maxLength={120}
+            value={fact}
+            onChange={(e) => setFact(e.target.value)}
+          />
+          <Input 
+            placeholder="A hint (e.g. Works in Engineering)" 
+            maxLength={40} 
+            value={hint}
+            onChange={(e) => setHint(e.target.value)}
             error={error}
           />
           
-          <Button variant="coral" onClick={handleJoin} className="mt-2">Join game →</Button>
-          <Button variant="ghost" onClick={onBack}>Back</Button>
-          
-          <div className="flex items-center gap-2.5 mt-2 lg:mt-4">
-            <div className="flex-1 h-[1px] bg-border"></div>
-            <div className="text-[11px] text-muted uppercase tracking-widest font-semibold">or</div>
-            <div className="flex-1 h-[1px] bg-border"></div>
-          </div>
-          
-          <Button 
-            variant="ghost" 
-            className="border-[#FF5C384D] text-coral text-[13px] hover:border-coral lg:mt-2" 
-            onClick={onDemo}
-          >
-            👀 Preview as player (no code needed)
-          </Button>
+          <Button variant="coral" onClick={handleJoin} className="mt-4">Join game →</Button>
+          <Button variant="ghost" onClick={onBack}>Back to Home</Button>
         </div>
       </div>
     </div>

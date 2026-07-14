@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import type { TeamMember, Opponent } from '../../data';
-import type { HRUploadsState } from '../hr/HRSetup';
 
 interface GameScreenProps {
   subject: TeamMember;
@@ -9,7 +8,6 @@ interface GameScreenProps {
   totalRounds: number;
   score: number;
   streak: number;
-  uploads: HRUploadsState;
   opponents: Opponent[];
   playerNick: string;
   playerColor: string;
@@ -23,7 +21,6 @@ export const GameScreen: React.FC<GameScreenProps> = ({
   totalRounds,
   score,
   streak,
-  uploads,
   opponents,
   playerNick,
   playerColor,
@@ -109,8 +106,8 @@ export const GameScreen: React.FC<GameScreenProps> = ({
       .toUpperCase();
 
   const isDanger = timeLeft <= 5;
-  const photo = uploads[subject.nick]?.photo || subject.imgSrc;
-  const fact = uploads[subject.nick]?.fact || subject.fact;
+  const photo = subject.imgSrc;
+  const fact = subject.fact;
 
   const meEntry = { name: 'You', nick: playerNick, color: playerColor, score, streak };
   const allPlayers = [...opponents, meEntry].sort((a, b) => b.score - a.score);
@@ -162,11 +159,21 @@ export const GameScreen: React.FC<GameScreenProps> = ({
             </div>
 
             <div
-              className={`absolute inset-0 bg-[#22C55E40] rounded-sm flex items-center justify-center text-[52px] lg:text-[72px] ${
+              className={`absolute inset-0 bg-[#22C55E40] rounded-sm flex flex-col items-center justify-center ${
                 reveal && isCorrect ? 'animate-pop-in flex' : 'hidden'
               }`}
             >
-              ✓
+              <div className="text-[52px] lg:text-[72px] leading-none">✓</div>
+              {answered && <div className="text-[12px] font-bold mt-2 animate-pulse bg-black/50 text-white px-3 py-1 rounded-full">Waiting for others...</div>}
+            </div>
+            
+            <div
+              className={`absolute inset-0 bg-[#EF444440] rounded-sm flex flex-col items-center justify-center ${
+                reveal && !isCorrect ? 'animate-pop-in flex' : 'hidden'
+              }`}
+            >
+              <div className="text-[52px] lg:text-[72px] leading-none">✗</div>
+              {answered && <div className="text-[12px] font-bold mt-2 animate-pulse bg-black/50 text-white px-3 py-1 rounded-full">Waiting for others...</div>}
             </div>
           </div>
 

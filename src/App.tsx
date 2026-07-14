@@ -1,18 +1,16 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { ModeSelect } from './components/ModeSelect';
-import { HRSetup } from './components/hr/HRSetup';
-import type { HRUploadsState } from './components/hr/HRSetup';
 import { HRReview } from './components/hr/HRReview';
 import { PlayerJoin } from './components/player/PlayerJoin';
 import { PlayerLobby } from './components/player/PlayerLobby';
 import { GameScreen } from './components/game/GameScreen';
 import { EndScreen } from './components/game/EndScreen';
-import { TEAM, TEAM_WITH_IMAGES, INITIAL_OPPONENTS } from './data';
 import type { TeamMember, Opponent } from './data';
+import { useGameState, checkSessionExists } from './hooks/useGameState';
 
 import { BackgroundFx } from './components/ui/BackgroundFx';
 
-type Screen = 'MODE_SELECT' | 'HR_SETUP' | 'HR_REVIEW' | 'PLAYER_JOIN' | 'PLAYER_LOBBY' | 'GAME' | 'LEADERBOARD' | 'END';
+type Screen = 'MODE_SELECT' | 'HR_SETUP' | 'HR_REVIEW' | 'PLAYER_JOIN' | 'PLAYER_LOBBY' | 'GAME' | 'END';
 
 function shuffle<T>(arr: T[]): T[] {
   const result = [...arr];
@@ -28,19 +26,15 @@ function App() {
   const [toastMsg, setToastMsg] = useState('');
   const [flashColor, setFlashColor] = useState<'green' | 'red' | null>(null);
 
-  // Global State
-  const [uploads, setUploads] = useState<HRUploadsState>({});
+  // Global State removed since HR Setup is skipped
   
-  // Player State
+  // Realtime Game State
+  const [gameCode, setGameCode] = useState<string | null>(null);
+  const [isHost, setIsHost] = useState(false);
+  const { session, createSession, joinSession, updatePlayerAnswer, startGame } = useGameState(gameCode || undefined);
+  
+  // Local Player State
   const [player, setPlayer] = useState<TeamMember | null>(null);
-  const [playerScore, setPlayerScore] = useState(0);
-  const [playerStreak, setPlayerStreak] = useState(0);
-  const [playerMaxStreak, setPlayerMaxStreak] = useState(0);
-  
-  // Game State
-  const [opponents, setOpponents] = useState<Opponent[]>(INITIAL_OPPONENTS);
-  const [gameQueue, setGameQueue] = useState<TeamMember[]>([]);
-  const [curQ, setCurQ] = useState(0);
 
   const showToast = (msg: string) => {
     setToastMsg(msg);
@@ -52,70 +46,93 @@ function App() {
     setTimeout(() => setFlashColor(null), 320);
   };
 
-  const getMultiplier = (s: number) => (s >= 5 ? 2.0 : s >= 3 ? 1.5 : s >= 2 ? 1.2 : 1.0);
-
-  // Simulating opponents during the game
-  const simOpponents = () => {
-    setOpponents((prev) => 
-      prev.map(o => {
-        const ok = Math.random() < 0.6;
-        if (ok) {
-          const add = Math.round((100 + (Math.random() < 0.4 ? 50 : 0)) * getMultiplier(o.streak));
-          const newStreak = o.streak + 1;
-          return { ...o, score: o.score + add, streak: newStreak, maxStreak: Math.max(o.maxStreak, newStreak) };
-        }
-        return { ...o, streak: 0 };
-      })
-    );
-  };
-
-  const startGame = () => {
-    setPlayerScore(0);
-    setPlayerStreak(0);
-    setPlayerMaxStreak(0);
-    setOpponents(INITIAL_OPPONENTS.map(o => ({ ...o, score: 0, streak: 0, maxStreak: 0 })));
-    setGameQueue(shuffle(TEAM_WITH_IMAGES).slice(0, 8));
-    setCurQ(0);
-    setScreen('GAME');
+  // Derive Current Round
+  const curQ = useMemo(() => {
+    if (!session || !session.players || !session.gameQueue || session.gameQueue.length === 0) return 0;
+    const players = Object.values(session.players);
+    if (players.length === 0) return 0;
     
-    // Random delay to simulate opponents answering
-    setTimeout(simOpponents, 2000 + Math.random() * 7000);
+    // Find the first round where NOT all players have answered
+    for (let r = 0; r < session.gameQueue.length; r++) {
+      const allAnswered = players.every(p => p.answers && p.answers[r]);
+      if (!allAnswered) return r;
+    }
+    return session.gameQueue.length; // End of game
+  }, [session]);
+
+  useEffect(() => {
+    if (session) {
+      if (session.status === 'playing' && screen === 'PLAYER_LOBBY') {
+        setScreen('GAME');
+      }
+      if (session.gameQueue && curQ >= session.gameQueue.length && session.gameQueue.length > 0 && screen === 'GAME') {
+        setScreen('END');
+      }
+    }
+  }, [session, screen, curQ]);
+
+  const handleHRLaunch = async (code: string) => {
+    await createSession(code);
+    setGameCode(code);
+    setIsHost(true);
+    setScreen('PLAYER_LOBBY');
   };
 
-  const handleAnswer = (correct: boolean, points: number) => {
+  const handlePlayerJoin = async (p: TeamMember, code: string) => {
+    const exists = await checkSessionExists(code);
+    if (!exists) {
+      throw new Error("Game session not found or already started.");
+    }
+    setGameCode(code);
+    setPlayer(p);
+    await joinSession(code, p);
+    setScreen('PLAYER_LOBBY');
+  };
+
+  const handleStartGame = async () => {
+    if (gameCode && session && session.players) {
+      await startGame(gameCode, session.players);
+    }
+  };
+
+  const handleAnswer = async (correct: boolean, points: number) => {
+    if (!gameCode || !player || !session) return;
+    
+    const myState = session.players?.[player.nick];
+    let newScore = (myState?.score || 0) + points;
+    let newStreak = correct ? (myState?.streak || 0) + 1 : 0;
+    let newMaxStreak = Math.max(myState?.maxStreak || 0, newStreak);
+    
     if (correct) {
-      setPlayerScore(prev => prev + points);
-      setPlayerStreak(prev => {
-        const newStreak = prev + 1;
-        setPlayerMaxStreak(m => Math.max(m, newStreak));
-        if (newStreak >= 5) showToast('💥 UNSTOPPABLE!');
-        else if (newStreak >= 3) showToast('🔥 ON FIRE!');
-        else if (newStreak >= 2) showToast('⚡ Streak!');
-        return newStreak;
-      });
+      if (newStreak >= 5) showToast('💥 UNSTOPPABLE!');
+      else if (newStreak >= 3) showToast('🔥 ON FIRE!');
+      else if (newStreak >= 2) showToast('⚡ Streak!');
       flash('green');
     } else {
-      setPlayerStreak(0);
       flash('red');
     }
 
-    // Wait 3 seconds to let players see the result, then auto-progress
-    setTimeout(() => {
-      handleNextRound();
-    }, 3000);
+    await updatePlayerAnswer(gameCode, player.nick, newScore, newStreak, newMaxStreak, curQ);
   };
 
-  const handleNextRound = () => {
-    setCurQ(prev => {
-      const nextQ = prev + 1;
-      if (nextQ >= gameQueue.length) {
-        setScreen('END');
-        return prev;
-      }
-      setTimeout(simOpponents, 2000 + Math.random() * 5000);
-      return nextQ;
-    });
-  };
+  const opponents: Opponent[] = useMemo(() => {
+    if (!session || !session.players) return [];
+    return Object.values(session.players)
+      .filter(p => p.nick !== player?.nick)
+      .map(p => ({
+        name: p.name,
+        nick: p.nick,
+        color: p.color,
+        score: p.score,
+        streak: p.streak,
+        maxStreak: p.maxStreak
+      }));
+  }, [session, player]);
+
+  const myState = session?.players?.[player?.nick || ''];
+  const playerScore = myState?.score || 0;
+  const playerStreak = myState?.streak || 0;
+  const playerMaxStreak = myState?.maxStreak || 0;
 
   // Render Screens
   return (
@@ -130,65 +147,57 @@ function App() {
       <div className="w-full h-full lg:h-auto lg:w-[1024px] lg:max-h-[85vh] lg:rounded-[24px] lg:bg-surface/60 lg:backdrop-blur-xl lg:border lg:border-white/10 lg:shadow-2xl lg:overflow-hidden relative flex">
         <div className="w-full flex-1 relative max-w-[430px] mx-auto lg:max-w-none">
           {screen === 'MODE_SELECT' && (
-            <ModeSelect onSelect={(m) => setScreen(m === 'hr' ? 'HR_SETUP' : 'PLAYER_JOIN')} />
-          )}
-          
-          {screen === 'HR_SETUP' && (
-            <HRSetup 
-              onBack={() => setScreen('MODE_SELECT')} 
-              onReview={(up) => { setUploads(up); setScreen('HR_REVIEW'); }} 
-            />
+            <ModeSelect onSelect={(m) => setScreen(m === 'hr' ? 'HR_REVIEW' : 'PLAYER_JOIN')} />
           )}
 
           {screen === 'HR_REVIEW' && (
             <HRReview 
-              uploads={uploads} 
-              onBack={() => setScreen('HR_SETUP')} 
-              onLaunch={() => { showToast('Game live! Waiting for players...'); }} 
+              onBack={() => setScreen('MODE_SELECT')} 
+              onLaunch={handleHRLaunch} 
             />
           )}
 
           {screen === 'PLAYER_JOIN' && (
             <PlayerJoin 
               onBack={() => setScreen('MODE_SELECT')} 
-              onJoin={(p) => { setPlayer(p); setScreen('PLAYER_LOBBY'); }} 
-              onDemo={() => { 
-                const demo = TEAM[Math.floor(Math.random() * TEAM.length)];
-                setPlayer(demo);
-                setScreen('PLAYER_LOBBY');
-              }} 
+              onJoin={handlePlayerJoin} 
             />
           )}
 
-          {screen === 'PLAYER_LOBBY' && player && (
+          {screen === 'PLAYER_LOBBY' && (
             <PlayerLobby 
-              player={player} 
-              onStart={startGame} 
+              player={player || undefined} 
+              isHost={isHost}
+              gameCode={gameCode || ''}
+              joinedPlayers={session?.players ? Object.values(session.players) : []}
+              onStart={handleStartGame} 
             />
           )}
 
-          {screen === 'GAME' && player && gameQueue.length > 0 && (
+          {screen === 'GAME' && session && session.gameQueue && session.gameQueue.length > 0 && curQ < session.gameQueue.length && (
             <GameScreen 
-              subject={gameQueue[curQ]} 
-              options={shuffle([gameQueue[curQ], ...shuffle(TEAM.filter(m => m.nick !== gameQueue[curQ].nick)).slice(0, 3)])}
+              subject={session.gameQueue[curQ]} 
+              options={shuffle([
+                session.gameQueue[curQ], 
+                ...shuffle(Object.values(session.players || {}).filter(p => p.nick !== session.gameQueue[curQ].nick)).slice(0, 3)
+              ]) as TeamMember[]}
               round={curQ + 1}
-              totalRounds={gameQueue.length}
+              totalRounds={session.gameQueue.length}
               score={playerScore}
               streak={playerStreak}
-              uploads={uploads}
               opponents={opponents}
-              playerNick={player.nick}
-              playerColor={player.color}
+              playerNick={player?.nick || ''}
+              playerColor={player?.color || ''}
               onAnswer={handleAnswer}
             />
           )}
 
-          {screen === 'END' && player && (
+          {screen === 'END' && (
             <EndScreen 
               playerScore={playerScore}
               playerMaxStreak={playerMaxStreak}
-              playerNick={player.nick}
-              playerColor={player.color}
+              playerNick={player?.nick || 'Host'}
+              playerColor={player?.color || '#000'}
               opponents={opponents}
             />
           )}
