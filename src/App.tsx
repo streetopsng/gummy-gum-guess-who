@@ -5,12 +5,13 @@ import { PlayerJoin } from './components/player/PlayerJoin';
 import { PlayerLobby } from './components/player/PlayerLobby';
 import { GameScreen } from './components/game/GameScreen';
 import { EndScreen } from './components/game/EndScreen';
+import { HostScreen } from './components/host/HostScreen';
 import type { TeamMember, Opponent } from './data';
 import { useGameState, checkSessionExists } from './hooks/useGameState';
 
 import { BackgroundFx } from './components/ui/BackgroundFx';
 
-type Screen = 'MODE_SELECT' | 'HR_SETUP' | 'HR_REVIEW' | 'PLAYER_JOIN' | 'PLAYER_LOBBY' | 'GAME' | 'END';
+type Screen = 'MODE_SELECT' | 'HR_SETUP' | 'HR_REVIEW' | 'PLAYER_JOIN' | 'PLAYER_LOBBY' | 'GAME' | 'HOST_DASHBOARD' | 'END';
 
 function shuffle<T>(arr: T[]): T[] {
   const result = [...arr];
@@ -63,13 +64,13 @@ function App() {
   useEffect(() => {
     if (session) {
       if (session.status === 'playing' && screen === 'PLAYER_LOBBY') {
-        setScreen('GAME');
+        setScreen(isHost ? 'HOST_DASHBOARD' : 'GAME');
       }
-      if (session.gameQueue && curQ >= session.gameQueue.length && session.gameQueue.length > 0 && screen === 'GAME') {
+      if (session.gameQueue && curQ >= session.gameQueue.length && session.gameQueue.length > 0 && (screen === 'GAME' || screen === 'HOST_DASHBOARD')) {
         setScreen('END');
       }
     }
-  }, [session, screen, curQ]);
+  }, [session, screen, curQ, isHost]);
 
   const handleHRLaunch = async (code: string) => {
     await createSession(code);
@@ -171,6 +172,15 @@ function App() {
               gameCode={gameCode || ''}
               joinedPlayers={session?.players ? Object.values(session.players) : []}
               onStart={handleStartGame} 
+            />
+          )}
+
+          {screen === 'HOST_DASHBOARD' && session && session.gameQueue && session.gameQueue.length > 0 && curQ < session.gameQueue.length && (
+            <HostScreen 
+              round={curQ + 1}
+              totalRounds={session.gameQueue.length}
+              opponents={opponents}
+              sessionPlayers={session.players || {}}
             />
           )}
 

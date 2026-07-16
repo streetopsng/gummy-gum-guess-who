@@ -46,8 +46,11 @@ export const EndScreen: React.FC<EndScreenProps> = ({
       .slice(0, 2)
       .toUpperCase();
 
-  const meEntry = { name: 'You', nick: playerNick, color: playerColor, score: playerScore, maxStreak: playerMaxStreak };
-  const all = [...opponents, meEntry].sort((a, b) => b.score - a.score);
+  const all = [...opponents];
+  if (playerNick !== 'Host') {
+    all.push({ name: 'You', nick: playerNick, color: playerColor, score: playerScore, streak: 0, maxStreak: playerMaxStreak });
+  }
+  all.sort((a, b) => b.score - a.score);
 
   const handleRxn = (e: React.MouseEvent<HTMLDivElement>) => {
     const el = e.currentTarget;
