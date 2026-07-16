@@ -11,14 +11,11 @@ interface PlayerJoinProps {
 
 export const PlayerJoin: React.FC<PlayerJoinProps> = ({ onBack, onJoin }) => {
   const [code, setCode] = useState('');
-  const [name, setName] = useState('');
   const [nick, setNick] = useState('');
-  const [fact, setFact] = useState('');
-  const [hint, setHint] = useState('');
   const [error, setError] = useState('');
 
   const handleJoin = async () => {
-    if (!code.trim() || !name.trim() || !nick.trim() || !fact.trim() || !hint.trim()) {
+    if (!code.trim() || !nick.trim()) {
       setError('Please fill in all fields.');
       return;
     }
@@ -37,11 +34,10 @@ export const PlayerJoin: React.FC<PlayerJoinProps> = ({ onBack, onJoin }) => {
     const emoji = emojiList[Math.floor(Math.random() * emojiList.length)];
 
     const player: TeamMember = {
-      name: name.trim(),
+      name: nick.trim(), // We use nick for name since name was removed
       nick: nick.trim(),
       color: randomColor,
-      fact: fact.trim(),
-      hint: hint.trim(),
+      facts: ['', '', '', ''],
       imgSrc: makeSVG(emoji, randomBg)
     };
 
@@ -68,30 +64,10 @@ export const PlayerJoin: React.FC<PlayerJoinProps> = ({ onBack, onJoin }) => {
             onChange={(e) => setCode(e.target.value)}
           />
           <Input 
-            placeholder="Your full name (e.g. Jane Doe)" 
-            maxLength={30} 
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-          <Input 
             placeholder="Codename/Nickname (e.g. QuietStorm)" 
             maxLength={20} 
             value={nick}
             onChange={(e) => setNick(e.target.value)}
-          />
-          <textarea
-            placeholder="A Fun Fact about you... (make it hard to guess!)"
-            className="w-full bg-surface/50 border border-border text-[13px] rounded-xl px-4 py-3 outline-none resize-none placeholder:text-muted/50 focus:border-amber transition-colors"
-            rows={3}
-            maxLength={120}
-            value={fact}
-            onChange={(e) => setFact(e.target.value)}
-          />
-          <Input 
-            placeholder="A hint (e.g. Works in Engineering)" 
-            maxLength={40} 
-            value={hint}
-            onChange={(e) => setHint(e.target.value)}
             error={error}
           />
           

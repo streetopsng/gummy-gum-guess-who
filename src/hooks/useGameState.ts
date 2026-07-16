@@ -7,8 +7,7 @@ export interface PlayerState {
   name: string;
   nick: string;
   color: string;
-  fact: string;
-  hint: string;
+  facts: string[];
   imgSrc: string;
   score: number;
   streak: number;
@@ -18,7 +17,7 @@ export interface PlayerState {
 
 export interface GameSession {
   status: 'lobby' | 'playing' | 'ended';
-  gameQueue: TeamMember[];
+  gameQueue: any[]; // will be GameRoundItem[]
   players?: Record<string, PlayerState>;
 }
 
@@ -65,14 +64,18 @@ export function useGameState(gameCode?: string) {
       name: player.name,
       nick: player.nick,
       color: player.color,
-      fact: player.fact,
-      hint: player.hint,
+      facts: player.facts,
       imgSrc: player.imgSrc || '',
       score: 0,
       streak: 0,
       maxStreak: 0,
       answers: {}
     });
+  };
+
+  const updatePlayerFacts = async (code: string, nick: string, facts: string[]) => {
+    const playerRef = ref(database, `sessions/${code}/players/${nick}`);
+    await update(playerRef, { facts });
   };
 
   const updatePlayerAnswer = async (code: string, nick: string, score: number, streak: number, maxStreak: number, roundIndex: number) => {
@@ -86,14 +89,22 @@ export function useGameState(gameCode?: string) {
   };
 
   const startGame = async (code: string, players: Record<string, PlayerState>) => {
-    const arr = Object.values(players).map(p => ({
-      name: p.name,
-      nick: p.nick,
-      color: p.color,
-      fact: p.fact,
-      hint: p.hint,
-      imgSrc: p.imgSrc
-    }));
+    const arr: any[] = [];
+    Object.values(players).forEach(p => {
+      // Create a round for each valid fact
+      p.facts.forEach(f => {
+        if (f.trim()) {
+          arr.push({
+            name: p.name,
+            nick: p.nick,
+            color: p.color,
+            facts: p.facts,
+            currentFact: f,
+            imgSrc: p.imgSrc
+          });
+        }
+      });
+    });
     
     // Shuffle the array locally before sending
     for (let i = arr.length - 1; i > 0; i--) {
@@ -112,6 +123,7 @@ export function useGameState(gameCode?: string) {
     session,
     createSession,
     joinSession,
+    updatePlayerFacts,
     updatePlayerAnswer,
     startGame
   };

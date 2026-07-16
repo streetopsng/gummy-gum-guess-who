@@ -8,6 +8,7 @@ interface EndScreenProps {
   playerNick: string;
   playerColor: string;
   opponents: Opponent[];
+  onHome?: () => void;
 }
 
 export const EndScreen: React.FC<EndScreenProps> = ({
@@ -16,6 +17,7 @@ export const EndScreen: React.FC<EndScreenProps> = ({
   playerNick,
   playerColor,
   opponents,
+  onHome,
 }) => {
   const [confetti, setConfetti] = useState<{ id: number; left: number; color: string; delay: number; duration: number }[]>([]);
   const [showPhrase, setShowPhrase] = useState(false);
@@ -184,6 +186,17 @@ export const EndScreen: React.FC<EndScreenProps> = ({
             </div>
           ))}
         </div>
+
+        {onHome && (
+          <div className="flex justify-center px-5 pb-8 lg:p-0 lg:mt-4 w-full shrink-0">
+            <button 
+              onClick={onHome}
+              className="px-6 py-3 bg-surface/50 hover:bg-surface/80 border border-border rounded-full text-[14px] font-bold text-white transition-colors"
+            >
+              Return to Homepage
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

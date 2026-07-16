@@ -16,10 +16,13 @@ export interface TeamMember {
   name: string;
   nick: string;
   color: string;
-  fact: string;
-  hint: string;
+  facts: string[];
   photo?: string;
   imgSrc?: string;
+}
+
+export interface GameRoundItem extends TeamMember {
+  currentFact: string;
 }
 
 export function makeSVG(emoji: string, bg: string) {

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import type { TeamMember, Opponent } from '../../data';
 
 interface GameScreenProps {
-  subject: TeamMember;
+  subject: any;
   options: TeamMember[];
   round: number;
   totalRounds: number;
@@ -29,7 +29,6 @@ export const GameScreen: React.FC<GameScreenProps> = ({
   const [timeLeft, setTimeLeft] = useState(15);
   const [answered, setAnswered] = useState(false);
   const [selectedCard, setSelectedCard] = useState<string | null>(null);
-  const [showHint, setShowHint] = useState(false);
   const [imageClear, setImageClear] = useState(false);
   const [reveal, setReveal] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
@@ -39,7 +38,6 @@ export const GameScreen: React.FC<GameScreenProps> = ({
     setTimeLeft(15);
     setAnswered(false);
     setSelectedCard(null);
-    setShowHint(false);
     setImageClear(false);
     setReveal(false);
     setIsCorrect(false);
@@ -59,15 +57,12 @@ export const GameScreen: React.FC<GameScreenProps> = ({
           handleTimeUp();
           return 0;
         }
-        if (prev <= 6 && !showHint) {
-          setShowHint(true);
-        }
         return prev - 1;
       });
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [answered, showHint]);
+  }, [answered]);
 
   const handleTimeUp = () => {
     if (!answered) {
@@ -107,7 +102,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({
 
   const isDanger = timeLeft <= 5;
   const photo = subject.imgSrc;
-  const fact = subject.fact;
+  const fact = subject.currentFact;
 
   const meEntry = { name: 'You', nick: playerNick, color: playerColor, score, streak };
   const allPlayers = [...opponents, meEntry].sort((a, b) => b.score - a.score);
@@ -215,14 +210,6 @@ export const GameScreen: React.FC<GameScreenProps> = ({
                 </div>
               ))}
             </div>
-          </div>
-
-          <div
-            className={`absolute top-0 left-5 right-5 lg:static mx-auto px-3 py-2 lg:py-3 lg:px-4 bg-[#F5A62314] rounded-md border border-[#F5A62333] text-[12px] lg:text-[14px] text-amber animate-hint-in lg:mb-6 text-center ${
-              showHint && !reveal ? 'block' : 'hidden'
-            }`}
-          >
-            💡 Hint: {subject.hint}
           </div>
 
           <div className="grid grid-cols-2 gap-2 lg:gap-4 mt-8 lg:mt-0">

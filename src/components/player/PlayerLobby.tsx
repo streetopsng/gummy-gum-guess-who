@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { TeamMember } from '../../data';
 import type { PlayerState } from '../../hooks/useGameState';
 import { Button } from '../ui/Button';
@@ -10,10 +10,24 @@ interface PlayerLobbyProps {
   gameCode: string;
   joinedPlayers: PlayerState[];
   onStart: () => void;
+  onUpdateFacts: (facts: string[]) => void;
 }
 
-export const PlayerLobby: React.FC<PlayerLobbyProps> = ({ player, isHost, gameCode, joinedPlayers, onStart }) => {
+export const PlayerLobby: React.FC<PlayerLobbyProps> = ({ player, isHost, gameCode, joinedPlayers, onStart, onUpdateFacts }) => {
+  const [localFacts, setLocalFacts] = useState<string[]>(['', '', '', '']);
   const getInitials = (name: string) => name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
+
+  // Find my current state from joinedPlayers
+  const myState = player ? joinedPlayers.find(p => p.nick === player.nick) : null;
+  const factsFilled = myState?.facts && myState.facts.every(f => f.trim() !== '');
+
+  const canStart = isHost && joinedPlayers.length >= 5;
+
+  const handleUpdateFacts = () => {
+    if (localFacts.every(f => f.trim() !== '')) {
+      onUpdateFacts(localFacts);
+    }
+  };
 
   // Filter out the current player from the list of others
   const others = joinedPlayers.filter(p => p.nick !== player?.nick);
@@ -34,18 +48,48 @@ export const PlayerLobby: React.FC<PlayerLobbyProps> = ({ player, isHost, gameCo
         </div>
 
         {player ? (
-          <div className="mx-[22px] lg:mx-0 mb-4 bg-surface lg:bg-surface/60 lg:backdrop-blur-sm border-[1.5px] border-[#F5A6234D] rounded-[14px] p-3.5 lg:p-5 flex items-center gap-3">
-            <div 
-              className="w-10 h-10 lg:w-12 lg:h-12 rounded-full flex items-center justify-center text-[14px] lg:text-[16px] font-extrabold text-[#1a0f00] shrink-0"
-              style={{ background: player.color }}
-            >
-              {getInitials(player.name)}
+          <div className="mx-[22px] lg:mx-0 mb-4 bg-surface lg:bg-surface/60 lg:backdrop-blur-sm border-[1.5px] border-[#F5A6234D] rounded-[14px] p-3.5 lg:p-5 flex flex-col gap-3">
+            <div className="flex items-center gap-3">
+              <div 
+                className="w-10 h-10 lg:w-12 lg:h-12 rounded-full flex items-center justify-center text-[14px] lg:text-[16px] font-extrabold text-[#1a0f00] shrink-0"
+                style={{ background: player.color }}
+              >
+                {getInitials(player.name)}
+              </div>
+              <div className="flex-1">
+                <div className="text-[14px] lg:text-[16px] font-bold">{player.nick}</div>
+                <div className="text-[11px] lg:text-[12px] text-amber">You {factsFilled ? '· Ready' : '· Filling Info'}</div>
+              </div>
+              {factsFilled && <Badge variant="green">✓ Joined</Badge>}
             </div>
-            <div className="flex-1">
-              <div className="text-[14px] lg:text-[16px] font-bold">{player.nick}</div>
-              <div className="text-[11px] lg:text-[12px] text-amber">You · Ready</div>
-            </div>
-            <Badge variant="green">✓ Joined</Badge>
+
+            {!factsFilled && (
+              <div className="flex flex-col gap-2 mt-2">
+                <div className="text-[12px] text-muted mb-1">Please provide 4 fun facts about yourself:</div>
+                {[0, 1, 2, 3].map((i) => (
+                  <input
+                    key={i}
+                    placeholder={`Fact #${i + 1}`}
+                    className="w-full bg-black/20 border border-border/50 text-[13px] rounded-lg px-3 py-2 outline-none placeholder:text-muted/50 focus:border-amber transition-colors"
+                    maxLength={100}
+                    value={localFacts[i]}
+                    onChange={(e) => {
+                      const newFacts = [...localFacts];
+                      newFacts[i] = e.target.value;
+                      setLocalFacts(newFacts);
+                    }}
+                  />
+                ))}
+                <Button 
+                  variant="coral" 
+                  className="mt-2 text-[13px] py-2"
+                  onClick={handleUpdateFacts}
+                  disabled={!localFacts.every(f => f.trim() !== '')}
+                >
+                  Submit Facts
+                </Button>
+              </div>
+            )}
           </div>
         ) : (
           <div className="mx-[22px] lg:mx-0 mb-4 bg-gradient-to-br from-coral to-[#ff8c6b] rounded-[14px] p-5 text-center shadow-xl shadow-coral/20">
@@ -57,7 +101,10 @@ export const PlayerLobby: React.FC<PlayerLobbyProps> = ({ player, isHost, gameCo
 
         <div className="mt-auto hidden lg:block">
           {isHost ? (
-            <Button variant="coral" onClick={onStart} className="w-full">Start Game Now →</Button>
+            <div className="flex flex-col gap-2">
+              <Button variant="coral" onClick={onStart} className="w-full" disabled={!canStart}>Start Game Now →</Button>
+              {!canStart && <div className="text-[11px] text-muted text-center italic">Requires at least 5 players to start</div>}
+            </div>
           ) : (
             <div className="flex items-center gap-2 mb-4">
               <div className="w-2 h-2 rounded-full bg-coral animate-pulse-slow"></div>
@@ -99,7 +146,10 @@ export const PlayerLobby: React.FC<PlayerLobbyProps> = ({ player, isHost, gameCo
 
         <div className="p-4 px-[22px] pb-9 shrink-0 lg:hidden">
           {isHost ? (
-            <Button variant="coral" onClick={onStart}>Start Game Now →</Button>
+            <div className="flex flex-col gap-2">
+              <Button variant="coral" onClick={onStart} disabled={!canStart}>Start Game Now →</Button>
+              {!canStart && <div className="text-[11px] text-muted text-center italic">Requires at least 5 players to start</div>}
+            </div>
           ) : (
             <div className="text-center text-muted text-[13px] italic mb-4">Waiting on host...</div>
           )}

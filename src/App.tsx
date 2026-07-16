@@ -32,7 +32,7 @@ function App() {
   // Realtime Game State
   const [gameCode, setGameCode] = useState<string | null>(null);
   const [isHost, setIsHost] = useState(false);
-  const { session, createSession, joinSession, updatePlayerAnswer, startGame } = useGameState(gameCode || undefined);
+  const { session, createSession, joinSession, updatePlayerFacts, updatePlayerAnswer, startGame } = useGameState(gameCode || undefined);
   
   // Local Player State
   const [player, setPlayer] = useState<TeamMember | null>(null);
@@ -76,7 +76,7 @@ function App() {
     await createSession(code);
     setGameCode(code);
     setIsHost(true);
-    setScreen('PLAYER_LOBBY');
+    setScreen('PLAYER_JOIN');
   };
 
   const handlePlayerJoin = async (p: TeamMember, code: string) => {
@@ -171,7 +171,12 @@ function App() {
               isHost={isHost}
               gameCode={gameCode || ''}
               joinedPlayers={session?.players ? Object.values(session.players) : []}
-              onStart={handleStartGame} 
+              onStart={handleStartGame}
+              onUpdateFacts={(facts) => {
+                if (gameCode && player) {
+                  updatePlayerFacts(gameCode, player.nick, facts);
+                }
+              }}
             />
           )}
 
@@ -206,9 +211,15 @@ function App() {
             <EndScreen 
               playerScore={playerScore}
               playerMaxStreak={playerMaxStreak}
-              playerNick={player?.nick || 'Host'}
+              playerNick={player?.nick || ''}
               playerColor={player?.color || '#000'}
               opponents={opponents}
+              onHome={() => {
+                setScreen('MODE_SELECT');
+                setGameCode(null);
+                setPlayer(null);
+                setIsHost(false);
+              }}
             />
           )}
         </div>
