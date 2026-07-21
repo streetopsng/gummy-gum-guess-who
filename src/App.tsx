@@ -76,7 +76,7 @@ function App() {
     await createSession(code);
     setGameCode(code);
     setIsHost(true);
-    setScreen('PLAYER_JOIN');
+    setScreen('PLAYER_LOBBY');
   };
 
   const handlePlayerJoin = async (p: TeamMember, code: string) => {
@@ -211,7 +211,7 @@ function App() {
             <EndScreen 
               playerScore={playerScore}
               playerMaxStreak={playerMaxStreak}
-              playerNick={player?.nick || ''}
+              playerNick={isHost && !player ? 'Host' : (player?.nick || '')}
               playerColor={player?.color || '#000'}
               opponents={opponents}
               onHome={() => {
