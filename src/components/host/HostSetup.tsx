@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '../ui/Button';
 
-interface HRReviewProps {
+interface HostSetupProps {
   onBack: () => void;
   onLaunch: (gameCode: string) => void;
 }
 
-export const HRReview: React.FC<HRReviewProps> = ({ onBack, onLaunch }) => {
+export const HostSetup: React.FC<HostSetupProps> = ({ onBack, onLaunch }) => {
   const [gameCode, setGameCode] = useState('');
 
   useEffect(() => {

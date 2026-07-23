@@ -29,9 +29,9 @@ export const ModeSelect: React.FC<ModeSelectProps> = ({ onSelect }) => {
         >
           <div className="text-[36px] lg:text-[42px] shrink-0 transition-transform duration-300 group-hover:scale-110">🎛️</div>
           <div>
-            <div className="text-[16px] lg:text-[18px] font-extrabold">I'm the HR / host</div>
+            <div className="text-[16px] lg:text-[18px] font-extrabold">Host Game</div>
             <div className="text-[12px] lg:text-[13px] text-muted mt-[3px] leading-[1.5]">
-              Upload team facts and photos, generate a game code, and launch the session.
+              Generate a game code and launch the session.
             </div>
           </div>
           <div className="text-[20px] text-muted ml-auto shrink-0 transition-transform duration-300 group-hover:translate-x-1 group-hover:text-amber">→</div>

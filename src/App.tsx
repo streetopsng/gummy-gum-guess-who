@@ -1,17 +1,18 @@
 import { useState, useEffect, useMemo } from 'react';
 import { ModeSelect } from './components/ModeSelect';
-import { HRReview } from './components/hr/HRReview';
+import { HostSetup } from './components/host/HostSetup';
 import { PlayerJoin } from './components/player/PlayerJoin';
 import { PlayerLobby } from './components/player/PlayerLobby';
 import { GameScreen } from './components/game/GameScreen';
+import { RoundReaction } from './components/game/RoundReaction';
+import { RoundLeaderboard } from './components/game/RoundLeaderboard';
 import { EndScreen } from './components/game/EndScreen';
-import { HostScreen } from './components/host/HostScreen';
 import type { TeamMember, Opponent } from './data';
 import { useGameState, checkSessionExists } from './hooks/useGameState';
 
 import { BackgroundFx } from './components/ui/BackgroundFx';
 
-type Screen = 'MODE_SELECT' | 'HR_SETUP' | 'HR_REVIEW' | 'PLAYER_JOIN' | 'PLAYER_LOBBY' | 'GAME' | 'HOST_DASHBOARD' | 'END';
+type Screen = 'MODE_SELECT' | 'HOST_SETUP' | 'PLAYER_JOIN' | 'PLAYER_LOBBY' | 'GAME' | 'ROUND_REACTION' | 'ROUND_LEADERBOARD' | 'END';
 
 function shuffle<T>(arr: T[]): T[] {
   const result = [...arr];
@@ -47,15 +48,19 @@ function App() {
     setTimeout(() => setFlashColor(null), 320);
   };
 
+  const [visualRound, setVisualRound] = useState(0);
+
   // Derive Current Round
   const curQ = useMemo(() => {
     if (!session || !session.players || !session.gameQueue || session.gameQueue.length === 0) return 0;
     const players = Object.values(session.players);
     if (players.length === 0) return 0;
     
-    // Find the first round where NOT all players have answered
+    // Find the first round where NOT all guessers have answered
     for (let r = 0; r < session.gameQueue.length; r++) {
-      const allAnswered = players.every(p => p.answers && p.answers[r]);
+      const currentSubjectNick = session.gameQueue[r].nick;
+      const guessers = players.filter(p => p.nick !== currentSubjectNick);
+      const allAnswered = guessers.every(p => p.answers && typeof p.answers[r] !== 'undefined');
       if (!allAnswered) return r;
     }
     return session.gameQueue.length; // End of game
@@ -64,19 +69,31 @@ function App() {
   useEffect(() => {
     if (session) {
       if (session.status === 'playing' && screen === 'PLAYER_LOBBY') {
-        setScreen(isHost ? 'HOST_DASHBOARD' : 'GAME');
+        setScreen('GAME');
+        setVisualRound(0);
       }
-      if (session.gameQueue && curQ >= session.gameQueue.length && session.gameQueue.length > 0 && (screen === 'GAME' || screen === 'HOST_DASHBOARD')) {
-        setScreen('END');
+      if (session.status === 'playing' && screen === 'GAME' && curQ > visualRound) {
+        setScreen('ROUND_REACTION');
+        setTimeout(() => {
+          setScreen('ROUND_LEADERBOARD');
+          setTimeout(() => {
+            setVisualRound(curQ);
+            if (curQ >= session.gameQueue.length) {
+              setScreen('END');
+            } else {
+              setScreen('GAME');
+            }
+          }, 5000);
+        }, 5000);
       }
     }
-  }, [session, screen, curQ, isHost]);
+  }, [session, screen, curQ, visualRound]);
 
-  const handleHRLaunch = async (code: string) => {
+  const handleHostLaunch = async (code: string) => {
     await createSession(code);
     setGameCode(code);
     setIsHost(true);
-    setScreen('PLAYER_LOBBY');
+    setScreen('PLAYER_JOIN');
   };
 
   const handlePlayerJoin = async (p: TeamMember, code: string) => {
@@ -113,7 +130,20 @@ function App() {
       flash('red');
     }
 
-    await updatePlayerAnswer(gameCode, player.nick, newScore, newStreak, newMaxStreak, curQ);
+    const currentSubject = session.gameQueue[curQ];
+    const totalPlayers = session.players ? Object.keys(session.players).length : 0;
+
+    await updatePlayerAnswer(
+      gameCode, 
+      player.nick, 
+      newScore, 
+      newStreak, 
+      newMaxStreak, 
+      curQ,
+      correct,
+      currentSubject.nick,
+      totalPlayers
+    );
   };
 
   const opponents: Opponent[] = useMemo(() => {
@@ -135,6 +165,14 @@ function App() {
   const playerStreak = myState?.streak || 0;
   const playerMaxStreak = myState?.maxStreak || 0;
 
+  const currentVisualSubject = session?.gameQueue?.[visualRound];
+  const wrongGuesses = useMemo(() => {
+    if (!session || !session.players || !currentVisualSubject) return 0;
+    return Object.values(session.players).filter(p => p.nick !== currentVisualSubject.nick && p.answers && p.answers[visualRound] === false).length;
+  }, [session, visualRound, currentVisualSubject]);
+
+  const totalPlayers = session?.players ? Object.keys(session.players).length : 0;
+
   // Render Screens
   return (
     <div className="min-h-screen w-full relative bg-transparent font-sans flex justify-center lg:items-center">
@@ -148,13 +186,13 @@ function App() {
       <div className="w-full h-full lg:h-auto lg:w-[1024px] lg:max-h-[85vh] lg:rounded-[24px] lg:bg-surface/60 lg:backdrop-blur-xl lg:border lg:border-white/10 lg:shadow-2xl lg:overflow-hidden relative flex">
         <div className="w-full flex-1 relative max-w-[430px] mx-auto lg:max-w-none">
           {screen === 'MODE_SELECT' && (
-            <ModeSelect onSelect={(m) => setScreen(m === 'hr' ? 'HR_REVIEW' : 'PLAYER_JOIN')} />
+            <ModeSelect onSelect={(m) => setScreen(m === 'hr' ? 'HOST_SETUP' : 'PLAYER_JOIN')} />
           )}
 
-          {screen === 'HR_REVIEW' && (
-            <HRReview 
+          {screen === 'HOST_SETUP' && (
+            <HostSetup 
               onBack={() => setScreen('MODE_SELECT')} 
-              onLaunch={handleHRLaunch} 
+              onLaunch={handleHostLaunch} 
             />
           )}
 
@@ -162,6 +200,7 @@ function App() {
             <PlayerJoin 
               onBack={() => setScreen('MODE_SELECT')} 
               onJoin={handlePlayerJoin} 
+              initialCode={isHost && gameCode ? gameCode : undefined}
             />
           )}
 
@@ -180,12 +219,25 @@ function App() {
             />
           )}
 
-          {screen === 'HOST_DASHBOARD' && session && session.gameQueue && session.gameQueue.length > 0 && curQ < session.gameQueue.length && (
-            <HostScreen 
-              round={curQ + 1}
+          {screen === 'ROUND_REACTION' && session && currentVisualSubject && (
+            <RoundReaction
+              subject={currentVisualSubject}
+              playerNick={player?.nick || ''}
+              wrongGuesses={wrongGuesses}
+              totalPlayers={totalPlayers}
+            />
+          )}
+
+          {screen === 'ROUND_LEADERBOARD' && session && (
+            <RoundLeaderboard
+              round={visualRound + 1}
               totalRounds={session.gameQueue.length}
               opponents={opponents}
-              sessionPlayers={session.players || {}}
+              playerScore={playerScore}
+              playerStreak={playerStreak}
+              playerNick={player?.nick || ''}
+              playerColor={player?.color || '#000'}
+              playerName={player?.name || 'You'}
             />
           )}
 

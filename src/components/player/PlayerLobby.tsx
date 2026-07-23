@@ -33,10 +33,10 @@ export const PlayerLobby: React.FC<PlayerLobbyProps> = ({ player, isHost, gameCo
   const others = joinedPlayers.filter(p => p.nick !== player?.nick);
 
   return (
-    <div className="flex flex-col h-full lg:h-full w-full lg:flex-row relative">
+    <div className="flex flex-col h-full lg:h-full w-full lg:flex-row relative overflow-y-auto lg:overflow-hidden scrollbar-hide">
       
       {/* Desktop Left Sidebar / Mobile Top Section */}
-      <div className="lg:w-[360px] lg:border-r lg:border-border lg:bg-black/20 lg:p-8 lg:flex lg:flex-col shrink-0">
+      <div className="lg:w-[360px] lg:border-r lg:border-border lg:bg-black/20 lg:p-8 lg:flex lg:flex-col shrink-0 lg:overflow-y-auto scrollbar-hide">
         <div className="px-[22px] pt-6 lg:px-0 lg:pt-0">
           <div className="flex items-center gap-2.5 mb-4 lg:mb-8">
             <div className="text-[32px] lg:text-[40px]">🕵️</div>
@@ -108,14 +108,14 @@ export const PlayerLobby: React.FC<PlayerLobbyProps> = ({ player, isHost, gameCo
           ) : (
             <div className="flex items-center gap-2 mb-4">
               <div className="w-2 h-2 rounded-full bg-coral animate-pulse-slow"></div>
-              <div className="text-[13px] text-muted">Waiting for HR to start the game...</div>
+              <div className="text-[13px] text-muted">Waiting for host to start the game...</div>
             </div>
           )}
         </div>
       </div>
 
       {/* Main Content Area (Joined Players) */}
-      <div className="flex-1 flex flex-col overflow-hidden relative min-h-0">
+      <div className="flex-1 flex flex-col lg:overflow-hidden relative min-h-0">
         <div className="flex-1 overflow-y-auto scrollbar-hide lg:p-8">
           <div className="px-[22px] pb-2 lg:px-0 lg:pb-5">
             <div className="text-[10px] lg:text-[12px] tracking-[2.5px] uppercase text-muted font-semibold">Also in the lobby ({others.length})</div>
@@ -139,7 +139,7 @@ export const PlayerLobby: React.FC<PlayerLobbyProps> = ({ player, isHost, gameCo
           <div className="flex items-center gap-2 pt-4 px-[22px] lg:hidden">
             <div className="w-2 h-2 rounded-full bg-coral animate-pulse-slow"></div>
             <div className="text-[13px] text-muted">
-              {isHost ? "Waiting for players..." : "Waiting for HR to start the game..."}
+              {isHost ? "Waiting for players..." : "Waiting for host to start the game..."}
             </div>
           </div>
         </div>

@@ -29,7 +29,6 @@ export const GameScreen: React.FC<GameScreenProps> = ({
   const [timeLeft, setTimeLeft] = useState(15);
   const [answered, setAnswered] = useState(false);
   const [selectedCard, setSelectedCard] = useState<string | null>(null);
-  const [imageClear, setImageClear] = useState(false);
   const [reveal, setReveal] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
 
@@ -38,13 +37,8 @@ export const GameScreen: React.FC<GameScreenProps> = ({
     setTimeLeft(15);
     setAnswered(false);
     setSelectedCard(null);
-    setImageClear(false);
     setReveal(false);
     setIsCorrect(false);
-
-    // Unblur image after 1 second
-    const unblurTimer = setTimeout(() => setImageClear(true), 1000);
-    return () => clearTimeout(unblurTimer);
   }, [subject]);
 
   useEffect(() => {
@@ -101,8 +95,9 @@ export const GameScreen: React.FC<GameScreenProps> = ({
       .toUpperCase();
 
   const isDanger = timeLeft <= 5;
-  const photo = subject.imgSrc;
   const fact = subject.currentFact;
+
+  const isFactOwner = subject.nick === playerNick;
 
   const meEntry = { name: 'You', nick: playerNick, color: playerColor, score, streak };
   const allPlayers = [...opponents, meEntry].sort((a, b) => b.score - a.score);
@@ -130,46 +125,43 @@ export const GameScreen: React.FC<GameScreenProps> = ({
         {/* Left/Top: Polaroid & Timer */}
         <div className="flex-none lg:flex-1 flex flex-col justify-center items-center px-5 pt-2 pb-2 lg:p-8 lg:border-r lg:border-border/50">
           <div
-            className={`w-[220px] lg:w-[280px] bg-cream rounded-sm p-2.5 lg:p-3.5 pb-8 lg:pb-10 shadow-[0_8px_40px_rgba(0,0,0,0.6),0_2px_8px_rgba(0,0,0,0.4)] relative transition-transform duration-150 ${
-              reveal && !isCorrect ? 'animate-shake' : ''
-            } ${reveal ? 'animate-flip-reveal' : ''}`}
+            className={`w-[220px] lg:w-[280px] bg-cream rounded-sm p-5 lg:p-6 pb-12 lg:pb-16 shadow-[0_8px_40px_rgba(0,0,0,0.6),0_2px_8px_rgba(0,0,0,0.4)] relative transition-transform duration-150 flex items-center justify-center ${
+              reveal && !isCorrect && !isFactOwner ? 'animate-shake' : ''
+            } ${reveal && !isFactOwner ? 'animate-flip-reveal' : ''}`}
           >
-            <img
-              src={photo}
-              className={`w-full h-[180px] lg:h-[240px] object-cover rounded-[2px] block relative transition-all duration-1000 ease-in-out ${
-                imageClear ? 'blur-none scale-100' : 'blur-[14px] scale-[1.05]'
-              }`}
-              alt="Mystery"
-            />
-            <div className="px-1 pt-2.5 lg:pt-3 text-[13px] lg:text-[15px] text-[#2a2010] text-center leading-[1.4] italic font-medium min-h-[42px] lg:min-h-[50px]">
+            <div className="text-[16px] lg:text-[20px] text-[#2a2010] text-center leading-[1.4] italic font-medium min-h-[120px] flex items-center justify-center w-full">
               "{fact}"
             </div>
 
             <div
-              className={`absolute bottom-1.5 lg:bottom-2 left-0 right-0 text-center text-[13px] lg:text-[15px] font-extrabold text-coral tracking-[0.5px] ${
-                reveal ? 'block' : 'hidden'
+              className={`absolute bottom-3 lg:bottom-4 left-0 right-0 text-center text-[15px] lg:text-[18px] font-extrabold text-coral tracking-[0.5px] ${
+                reveal || isFactOwner ? 'block' : 'hidden'
               }`}
             >
-              {subject.name}
+              {isFactOwner ? "Your Fact" : subject.name}
             </div>
 
-            <div
-              className={`absolute inset-0 bg-[#22C55E40] rounded-sm flex flex-col items-center justify-center ${
-                reveal && isCorrect ? 'animate-pop-in flex' : 'hidden'
-              }`}
-            >
-              <div className="text-[52px] lg:text-[72px] leading-none">✓</div>
-              {answered && <div className="text-[12px] font-bold mt-2 animate-pulse bg-black/50 text-white px-3 py-1 rounded-full">Waiting for others...</div>}
-            </div>
-            
-            <div
-              className={`absolute inset-0 bg-[#EF444440] rounded-sm flex flex-col items-center justify-center ${
-                reveal && !isCorrect ? 'animate-pop-in flex' : 'hidden'
-              }`}
-            >
-              <div className="text-[52px] lg:text-[72px] leading-none">✗</div>
-              {answered && <div className="text-[12px] font-bold mt-2 animate-pulse bg-black/50 text-white px-3 py-1 rounded-full">Waiting for others...</div>}
-            </div>
+            {!isFactOwner && (
+              <>
+                <div
+                  className={`absolute inset-0 bg-[#22C55E40] rounded-sm flex flex-col items-center justify-center ${
+                    reveal && isCorrect ? 'animate-pop-in flex' : 'hidden'
+                  }`}
+                >
+                  <div className="text-[52px] lg:text-[72px] leading-none">✓</div>
+                  {answered && <div className="text-[12px] font-bold mt-2 animate-pulse bg-black/50 text-white px-3 py-1 rounded-full">Waiting for others...</div>}
+                </div>
+                
+                <div
+                  className={`absolute inset-0 bg-[#EF444440] rounded-sm flex flex-col items-center justify-center ${
+                    reveal && !isCorrect ? 'animate-pop-in flex' : 'hidden'
+                  }`}
+                >
+                  <div className="text-[52px] lg:text-[72px] leading-none">✗</div>
+                  {answered && <div className="text-[12px] font-bold mt-2 animate-pulse bg-black/50 text-white px-3 py-1 rounded-full">Waiting for others...</div>}
+                </div>
+              </>
+            )}
           </div>
 
           <div className="w-full max-w-[220px] lg:max-w-[280px] mt-4 shrink-0">
@@ -212,46 +204,58 @@ export const GameScreen: React.FC<GameScreenProps> = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 lg:gap-4 mt-8 lg:mt-0">
-            {options.map((opt) => {
-              const isSelected = selectedCard === opt.nick;
-              const isTarget = opt.nick === subject.nick;
-              let btnClass = 'border-border bg-surface lg:bg-surface/60 lg:backdrop-blur-sm';
-              let avatarClass = '';
-              
-              if (reveal) {
-                if (isTarget) {
-                  btnClass = 'border-green bg-[#22C55E26]';
-                  avatarClass = '!bg-green';
-                } else if (isSelected && !isTarget) {
-                  btnClass = 'border-red bg-[#EF444426]';
-                  avatarClass = '!bg-red';
-                } else {
-                  btnClass = 'opacity-30 border-border bg-surface lg:bg-surface/60';
+          {isFactOwner ? (
+            <div className="flex flex-col items-center justify-center h-full text-center mt-8 lg:mt-0">
+              <div className="text-[20px] lg:text-[24px] font-bold text-amber mb-3">This is your fact!</div>
+              <div className="text-[14px] lg:text-[16px] text-muted">Watch the others guess...</div>
+              <div className="mt-8 flex gap-2">
+                <div className="w-2 h-2 bg-coral rounded-full animate-bounce"></div>
+                <div className="w-2 h-2 bg-coral rounded-full animate-bounce" style={{ animationDelay: '0.15s' }}></div>
+                <div className="w-2 h-2 bg-coral rounded-full animate-bounce" style={{ animationDelay: '0.3s' }}></div>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-2 lg:gap-4 mt-8 lg:mt-0">
+              {options.map((opt) => {
+                const isSelected = selectedCard === opt.nick;
+                const isTarget = opt.nick === subject.nick;
+                let btnClass = 'border-border bg-surface lg:bg-surface/60 lg:backdrop-blur-sm';
+                let avatarClass = '';
+                
+                if (reveal) {
+                  if (isTarget) {
+                    btnClass = 'border-green bg-[#22C55E26]';
+                    avatarClass = '!bg-green';
+                  } else if (isSelected && !isTarget) {
+                    btnClass = 'border-red bg-[#EF444426]';
+                    avatarClass = '!bg-red';
+                  } else {
+                    btnClass = 'opacity-30 border-border bg-surface lg:bg-surface/60';
+                  }
+                } else if (isSelected) {
+                  btnClass = 'border-amber bg-[#F5A6231A]';
                 }
-              } else if (isSelected) {
-                btnClass = 'border-amber bg-[#F5A6231A]';
-              }
 
-              return (
-                <button
-                  key={opt.nick}
-                  disabled={answered}
-                  onClick={() => handleAnswer(opt.nick, isTarget)}
-                  className={`border-[1.5px] rounded-[14px] p-3 lg:p-5 cursor-pointer transition-all duration-150 flex flex-col items-center gap-1.5 lg:gap-2.5 text-center ${btnClass} ${!answered ? 'hover:border-amber hover:bg-[#F5A62314] lg:hover:-translate-y-1' : ''}`}
-                >
-                  <div
-                    className={`w-[38px] h-[38px] lg:w-[54px] lg:h-[54px] rounded-full flex items-center justify-center text-[13px] lg:text-[18px] font-extrabold text-[#1a0f00] ${avatarClass}`}
-                    style={{ background: opt.color }}
+                return (
+                  <button
+                    key={opt.nick}
+                    disabled={answered}
+                    onClick={() => handleAnswer(opt.nick, isTarget)}
+                    className={`border-[1.5px] rounded-[14px] p-3 lg:p-5 cursor-pointer transition-all duration-150 flex flex-col items-center gap-1.5 lg:gap-2.5 text-center ${btnClass} ${!answered ? 'hover:border-amber hover:bg-[#F5A62314] lg:hover:-translate-y-1' : ''}`}
                   >
-                    {getInitials(opt.name)}
-                  </div>
-                  <div className="text-[12px] lg:text-[15px] font-bold leading-[1.3]">{opt.name}</div>
-                  <div className="text-[10px] lg:text-[12px] text-muted">{opt.nick}</div>
-                </button>
-              );
-            })}
-          </div>
+                    <div
+                      className={`w-[38px] h-[38px] lg:w-[54px] lg:h-[54px] rounded-full flex items-center justify-center text-[13px] lg:text-[18px] font-extrabold text-[#1a0f00] ${avatarClass}`}
+                      style={{ background: opt.color }}
+                    >
+                      {getInitials(opt.name)}
+                    </div>
+                    <div className="text-[12px] lg:text-[15px] font-bold leading-[1.3]">{opt.name}</div>
+                    <div className="text-[10px] lg:text-[12px] text-muted">{opt.nick}</div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
     </div>

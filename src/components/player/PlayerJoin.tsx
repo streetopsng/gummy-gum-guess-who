@@ -7,10 +7,11 @@ import { Input } from '../ui/Input';
 interface PlayerJoinProps {
   onBack: () => void;
   onJoin: (player: TeamMember, code: string) => Promise<void>;
+  initialCode?: string;
 }
 
-export const PlayerJoin: React.FC<PlayerJoinProps> = ({ onBack, onJoin }) => {
-  const [code, setCode] = useState('');
+export const PlayerJoin: React.FC<PlayerJoinProps> = ({ onBack, onJoin, initialCode }) => {
+  const [code, setCode] = useState(initialCode || '');
   const [nick, setNick] = useState('');
   const [error, setError] = useState('');
 
