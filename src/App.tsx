@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { ModeSelect } from './components/ModeSelect';
 import { HostSetup } from './components/host/HostSetup';
 import { PlayerJoin } from './components/player/PlayerJoin';
@@ -9,6 +9,7 @@ import { RoundLeaderboard } from './components/game/RoundLeaderboard';
 import { EndScreen } from './components/game/EndScreen';
 import type { TeamMember, Opponent } from './data';
 import { useGameState, checkSessionExists } from './hooks/useGameState';
+import { resolveGummyGumLaunch, reportGummyGumResult } from './lib/gummygumSession';
 
 import { BackgroundFx } from './components/ui/BackgroundFx';
 
@@ -49,6 +50,12 @@ function App() {
   };
 
   const [visualRound, setVisualRound] = useState(0);
+
+  // Resolve a GummyGum hub launch token (if any) once on load. Never blocks
+  // or affects gameplay — failures resolve to null and are logged only.
+  useEffect(() => {
+    resolveGummyGumLaunch().catch((err) => console.error('GummyGum launch resolve failed', err));
+  }, []);
 
   // Derive Current Round
   const curQ = useMemo(() => {
@@ -172,6 +179,45 @@ function App() {
   }, [session, visualRound, currentVisualSubject]);
 
   const totalPlayers = session?.players ? Object.keys(session.players).length : 0;
+
+  // Report the launching player's (the host's) outcome back to the GummyGum
+  // hub once their session reaches the final results screen. Guarded so it
+  // only fires once per game, and never blocks or affects gameplay.
+  const hasReportedRef = useRef(false);
+  useEffect(() => {
+    if (screen !== 'END' || !isHost || hasReportedRef.current || !session) return;
+    hasReportedRef.current = true;
+
+    const leaderboard = [...opponents];
+    if (player) {
+      leaderboard.push({
+        name: player.name,
+        nick: player.nick,
+        color: player.color,
+        score: playerScore,
+        streak: playerStreak,
+        maxStreak: playerMaxStreak,
+      });
+    }
+    leaderboard.sort((a, b) => b.score - a.score);
+    const rank = player ? leaderboard.findIndex((p) => p.nick === player.nick) + 1 : null;
+
+    reportGummyGumResult({
+      gameCode,
+      totalRounds: session.gameQueue.length,
+      totalPlayers,
+      hostPlayed: !!player,
+      finalScore: player ? playerScore : null,
+      maxStreak: player ? playerMaxStreak : null,
+      rank,
+      leaderboard: leaderboard.map((p) => ({
+        nick: p.nick,
+        name: p.name,
+        score: Math.round(p.score),
+        maxStreak: p.maxStreak,
+      })),
+    }).catch((err) => console.error('GummyGum result report failed', err));
+  }, [screen, isHost, session, gameCode, totalPlayers, opponents, player, playerScore, playerStreak, playerMaxStreak]);
 
   // Render Screens
   return (
