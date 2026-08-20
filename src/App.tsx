@@ -12,8 +12,10 @@ import { useGameState, checkSessionExists } from './hooks/useGameState';
 import { resolveGummyGumLaunch, reportGummyGumResult } from './lib/gummygumSession';
 
 import { BackgroundFx } from './components/ui/BackgroundFx';
+import { Button } from './components/ui/Button';
 
 type Screen = 'MODE_SELECT' | 'HOST_SETUP' | 'PLAYER_JOIN' | 'PLAYER_LOBBY' | 'GAME' | 'ROUND_REACTION' | 'ROUND_LEADERBOARD' | 'END';
+type GummyGumAccessState = 'checking' | 'granted' | 'denied';
 
 function shuffle<T>(arr: T[]): T[] {
   const result = [...arr];
@@ -51,10 +53,15 @@ function App() {
 
   const [visualRound, setVisualRound] = useState(0);
 
-  // Resolve a GummyGum hub launch token (if any) once on load. Never blocks
-  // or affects gameplay — failures resolve to null and are logged only.
+  const [ggAccessState, setGgAccessState] = useState<GummyGumAccessState>('checking');
+
   useEffect(() => {
-    resolveGummyGumLaunch().catch((err) => console.error('GummyGum launch resolve failed', err));
+    resolveGummyGumLaunch()
+      .then((session) => setGgAccessState(session ? 'granted' : 'denied'))
+      .catch((err) => {
+        console.error('GummyGum launch resolve failed', err);
+        setGgAccessState('denied');
+      });
   }, []);
 
   // Derive Current Round
@@ -218,6 +225,27 @@ function App() {
       })),
     }).catch((err) => console.error('GummyGum result report failed', err));
   }, [screen, isHost, session, gameCode, totalPlayers, opponents, player, playerScore, playerStreak, playerMaxStreak]);
+
+  if (ggAccessState === 'checking') {
+    return <div className="min-h-screen w-full bg-transparent" />;
+  }
+
+  if (ggAccessState === 'denied') {
+    return (
+      <div className="min-h-screen w-full relative bg-transparent font-sans flex justify-center items-center">
+        <BackgroundFx />
+        <div className="w-full max-w-[400px] mx-auto p-8 text-center relative">
+          <h1 className="text-white text-xl font-bold mb-3">Locked</h1>
+          <p className="text-white/70 text-[15px] mb-6">
+            This experience is only available through GummyGum.
+          </p>
+          <a href="https://gummygum.app">
+            <Button variant="amber">Go to GummyGum</Button>
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   // Render Screens
   return (
