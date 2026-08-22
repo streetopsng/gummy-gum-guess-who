@@ -10,6 +10,7 @@ import { EndScreen } from './components/game/EndScreen';
 import type { TeamMember, Opponent } from './data';
 import { useGameState, checkSessionExists } from './hooks/useGameState';
 import { resolveGummyGumLaunch, reportGummyGumResult } from './lib/gummygumSession';
+import type { GummyGumLaunchSession } from './lib/gummygumSession';
 
 import { BackgroundFx } from './components/ui/BackgroundFx';
 import { Button } from './components/ui/Button';
@@ -54,15 +55,38 @@ function App() {
   const [visualRound, setVisualRound] = useState(0);
 
   const [ggAccessState, setGgAccessState] = useState<GummyGumAccessState>('checking');
+  const [ggSession, setGgSession] = useState<GummyGumLaunchSession | null>(null);
 
   useEffect(() => {
     resolveGummyGumLaunch()
-      .then((session) => setGgAccessState(session ? 'granted' : 'denied'))
+      .then((session) => {
+        setGgSession(session);
+        setGgAccessState(session ? 'granted' : 'denied');
+      })
       .catch((err) => {
         console.error('GummyGum launch resolve failed', err);
         setGgAccessState('denied');
       });
   }, []);
+
+  // Skip the host/join code entry entirely once GummyGum has already told
+  // us the room and role — the player still picks a nickname/avatar on
+  // PLAYER_JOIN since GummyGum's identity doesn't map to that shape.
+  const ggRoutedRef = useRef(false);
+  useEffect(() => {
+    if (!ggSession || !ggSession.roomCode || ggRoutedRef.current || screen !== 'MODE_SELECT') return;
+    ggRoutedRef.current = true;
+    const code = ggSession.roomCode;
+    (async () => {
+      if (ggSession.isHost) {
+        const exists = await checkSessionExists(code);
+        if (!exists) await createSession(code);
+        setIsHost(true);
+      }
+      setGameCode(code);
+      setScreen('PLAYER_JOIN');
+    })();
+  }, [ggSession, screen, createSession]);
 
   // Derive Current Round
   const curQ = useMemo(() => {
@@ -247,6 +271,10 @@ function App() {
     );
   }
 
+  if (ggSession && ggSession.roomCode && screen === 'MODE_SELECT') {
+    return <div className="min-h-screen w-full bg-transparent" />;
+  }
+
   // Render Screens
   return (
     <div className="min-h-screen w-full relative bg-transparent font-sans flex justify-center lg:items-center">
@@ -274,7 +302,7 @@ function App() {
             <PlayerJoin 
               onBack={() => setScreen('MODE_SELECT')} 
               onJoin={handlePlayerJoin} 
-              initialCode={isHost && gameCode ? gameCode : undefined}
+              initialCode={gameCode || undefined}
             />
           )}
 
