@@ -17,6 +17,8 @@ export interface GummyGumLaunchSession {
   isGuest: boolean;
   player: GummyGumPlayer | null;
   reportToken: string;
+  roomCode: string | null;
+  isHost: boolean;
 }
 
 interface VerifyLaunchResponse {
@@ -27,6 +29,8 @@ interface VerifyLaunchResponse {
     isGuest: boolean;
     player: GummyGumPlayer | null;
     reportToken: string;
+    roomCode?: string | null;
+    isHost?: boolean;
   };
 }
 
@@ -70,6 +74,8 @@ export async function resolveGummyGumLaunch(): Promise<GummyGumLaunchSession | n
       isGuest: body.data.isGuest,
       player: body.data.player,
       reportToken: body.data.reportToken,
+      roomCode: body.data.roomCode ?? null,
+      isHost: Boolean(body.data.isHost),
     };
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(session));
 
