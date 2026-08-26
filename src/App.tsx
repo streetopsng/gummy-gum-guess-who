@@ -250,6 +250,7 @@ function App() {
     }).catch((err) => console.error('GummyGum result report failed', err));
   }, [screen, isHost, session, gameCode, totalPlayers, opponents, player, playerScore, playerStreak, playerMaxStreak]);
 
+  /*
   if (ggAccessState === 'checking') {
     return <div className="min-h-screen w-full bg-transparent" />;
   }
@@ -270,6 +271,9 @@ function App() {
       </div>
     );
   }
+  */
+  void Button;
+  void ggAccessState;
 
   if (ggSession && ggSession.roomCode && screen === 'MODE_SELECT') {
     return <div className="min-h-screen w-full bg-transparent" />;
