@@ -79,6 +79,7 @@ function App() {
     const code = ggSession.roomCode;
     (async () => {
       if (ggSession.isHost) {
+        // Also what makes GummyGum's room pre-creation work: if GummyGum already created this room, we skip creating a new one and just join it.
         const exists = await checkSessionExists(code);
         if (!exists) await createSession(code);
         setIsHost(true);
