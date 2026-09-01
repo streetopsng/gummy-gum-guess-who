@@ -8,11 +8,13 @@ interface PlayerJoinProps {
   onBack: () => void;
   onJoin: (player: TeamMember, code: string) => Promise<void>;
   initialCode?: string;
+  initialNick?: string;
+  ggEmail?: string;
 }
 
-export const PlayerJoin: React.FC<PlayerJoinProps> = ({ onBack, onJoin, initialCode }) => {
+export const PlayerJoin: React.FC<PlayerJoinProps> = ({ onBack, onJoin, initialCode, initialNick, ggEmail }) => {
   const [code, setCode] = useState(initialCode || '');
-  const [nick, setNick] = useState('');
+  const [nick, setNick] = useState(initialNick || '');
   const [error, setError] = useState('');
 
   const handleJoin = async () => {
@@ -39,7 +41,8 @@ export const PlayerJoin: React.FC<PlayerJoinProps> = ({ onBack, onJoin, initialC
       nick: nick.trim(),
       color: randomColor,
       facts: ['', '', '', ''],
-      imgSrc: makeSVG(emoji, randomBg)
+      imgSrc: makeSVG(emoji, randomBg),
+      ...(ggEmail && { ggEmail }),
     };
 
     try {

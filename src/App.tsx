@@ -304,10 +304,12 @@ function App() {
           )}
 
           {screen === 'PLAYER_JOIN' && (
-            <PlayerJoin 
-              onBack={() => setScreen('MODE_SELECT')} 
-              onJoin={handlePlayerJoin} 
+            <PlayerJoin
+              onBack={() => setScreen('MODE_SELECT')}
+              onJoin={handlePlayerJoin}
               initialCode={gameCode || undefined}
+              initialNick={ggSession?.player?.name || undefined}
+              ggEmail={ggSession?.player?.email || undefined}
             />
           )}
 

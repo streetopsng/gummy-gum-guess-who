@@ -53,11 +53,23 @@ export function useGameState(gameCode?: string) {
 
   const joinSession = async (code: string, player: TeamMember) => {
     const playerRef = ref(database, `sessions/${code}/players/${player.nick}`);
-    
-    // Check if the codename is already taken
     const snapshot = await get(playerRef);
+
     if (snapshot.exists()) {
-      throw new Error("This codename is already taken by someone else!");
+      const existing = snapshot.val();
+      // A closed-tab GummyGum rejoin reuses the same nick — only a genuine
+      // stranger without a matching identity is actually blocked.
+      const isSameIdentity = player.ggEmail && existing.ggEmail === player.ggEmail;
+      if (!isSameIdentity) {
+        throw new Error("This codename is already taken by someone else!");
+      }
+      await update(playerRef, {
+        name: player.name,
+        color: player.color,
+        facts: player.facts,
+        imgSrc: player.imgSrc || '',
+      });
+      return;
     }
 
     await set(playerRef, {
@@ -66,6 +78,7 @@ export function useGameState(gameCode?: string) {
       color: player.color,
       facts: player.facts,
       imgSrc: player.imgSrc || '',
+      ...(player.ggEmail && { ggEmail: player.ggEmail }),
       score: 0,
       streak: 0,
       maxStreak: 0,
