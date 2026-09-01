@@ -57,8 +57,7 @@ export function useGameState(gameCode?: string) {
 
     if (snapshot.exists()) {
       const existing = snapshot.val();
-      // A closed-tab GummyGum rejoin reuses the same nick — only a genuine
-      // stranger without a matching identity is actually blocked.
+      // A closed-tab rejoin reuses the same nick; only a mismatched identity is actually blocked.
       const isSameIdentity = player.ggEmail && existing.ggEmail === player.ggEmail;
       if (!isSameIdentity) {
         throw new Error("This codename is already taken by someone else!");
