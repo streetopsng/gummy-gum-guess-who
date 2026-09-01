@@ -19,6 +19,7 @@ export interface TeamMember {
   facts: string[];
   photo?: string;
   imgSrc?: string;
+  ggEmail?: string;
 }
 
 export interface GameRoundItem extends TeamMember {
