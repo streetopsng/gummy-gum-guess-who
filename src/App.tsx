@@ -254,7 +254,9 @@ function App() {
         nick: p.nick,
         name: p.name,
         score: Math.round(p.score),
+        streak: p.maxStreak,
         maxStreak: p.maxStreak,
+        isHost: !!player && p.nick === player.nick,
       })),
     }).catch((err) => console.error('GummyGum result report failed', err));
   }, [screen, isHost, session, gameCode, totalPlayers, opponents, player, playerScore, playerStreak, playerMaxStreak]);
