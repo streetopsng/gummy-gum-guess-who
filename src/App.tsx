@@ -384,6 +384,7 @@ function App() {
                 setPlayer(null);
                 setIsHost(false);
               }}
+              showGummyGumExit={!!ggSession}
             />
           )}
         </div>
