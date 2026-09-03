@@ -15,7 +15,7 @@ import type { GummyGumLaunchSession } from './lib/gummygumSession';
 import { BackgroundFx } from './components/ui/BackgroundFx';
 import { Button } from './components/ui/Button';
 
-type Screen = 'MODE_SELECT' | 'HOST_SETUP' | 'PLAYER_JOIN' | 'PLAYER_LOBBY' | 'GAME' | 'ROUND_REACTION' | 'ROUND_LEADERBOARD' | 'END';
+type Screen = 'MODE_SELECT' | 'HOST_SETUP' | 'PLAYER_JOIN' | 'PLAYER_LOBBY' | 'GAME' | 'ROUND_REACTION' | 'ROUND_LEADERBOARD' | 'END' | 'LOCKED';
 type GummyGumAccessState = 'checking' | 'granted' | 'denied';
 
 function shuffle<T>(arr: T[]): T[] {
@@ -129,6 +129,10 @@ function App() {
   }, [session, screen, curQ, visualRound]);
 
   const handleHostLaunch = async (code: string) => {
+    if (ggAccessState === 'denied') {
+      setScreen('LOCKED');
+      return;
+    }
     await createSession(code);
     setGameCode(code);
     setIsHost(true);
@@ -136,6 +140,10 @@ function App() {
   };
 
   const handlePlayerJoin = async (p: TeamMember, code: string) => {
+    if (ggAccessState === 'denied') {
+      setScreen('LOCKED');
+      return;
+    }
     const exists = await checkSessionExists(code);
     if (!exists) {
       throw new Error("Game session not found or already started.");
@@ -251,30 +259,9 @@ function App() {
     }).catch((err) => console.error('GummyGum result report failed', err));
   }, [screen, isHost, session, gameCode, totalPlayers, opponents, player, playerScore, playerStreak, playerMaxStreak]);
 
-  /*
   if (ggAccessState === 'checking') {
     return <div className="min-h-screen w-full bg-transparent" />;
   }
-
-  if (ggAccessState === 'denied') {
-    return (
-      <div className="min-h-screen w-full relative bg-transparent font-sans flex justify-center items-center">
-        <BackgroundFx />
-        <div className="w-full max-w-[400px] mx-auto p-8 text-center relative">
-          <h1 className="text-white text-xl font-bold mb-3">Locked</h1>
-          <p className="text-white/70 text-[15px] mb-6">
-            This experience is only available through GummyGum.
-          </p>
-          <a href="https://gummygum.app">
-            <Button variant="amber">Go to GummyGum</Button>
-          </a>
-        </div>
-      </div>
-    );
-  }
-  */
-  void Button;
-  void ggAccessState;
 
   if (ggSession && ggSession.roomCode && screen === 'MODE_SELECT') {
     return <div className="min-h-screen w-full bg-transparent" />;
@@ -294,6 +281,20 @@ function App() {
         <div className="w-full flex-1 relative max-w-[430px] mx-auto lg:max-w-none">
           {screen === 'MODE_SELECT' && (
             <ModeSelect onSelect={(m) => setScreen(m === 'hr' ? 'HOST_SETUP' : 'PLAYER_JOIN')} />
+          )}
+
+          {screen === 'LOCKED' && (
+            <div className="min-h-screen w-full relative bg-transparent font-sans flex justify-center items-center">
+              <div className="w-full max-w-[400px] mx-auto p-8 text-center relative">
+                <h1 className="text-white text-xl font-bold mb-3">Locked</h1>
+                <p className="text-white/70 text-[15px] mb-6">
+                  This experience is only available through GummyGum.
+                </p>
+                <a href="https://gummygum.app">
+                  <Button variant="amber">Go to GummyGum</Button>
+                </a>
+              </div>
+            </div>
           )}
 
           {screen === 'HOST_SETUP' && (
