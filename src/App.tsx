@@ -15,7 +15,7 @@ import type { GummyGumLaunchSession } from './lib/gummygumSession';
 import { BackgroundFx } from './components/ui/BackgroundFx';
 import { Button } from './components/ui/Button';
 
-type Screen = 'MODE_SELECT' | 'HOST_SETUP' | 'PLAYER_JOIN' | 'PLAYER_LOBBY' | 'GAME' | 'ROUND_REACTION' | 'ROUND_LEADERBOARD' | 'END' | 'LOCKED';
+type Screen = 'MODE_SELECT' | 'HOST_SETUP' | 'PLAYER_JOIN' | 'PLAYER_LOBBY' | 'GAME' | 'ROUND_REACTION' | 'ROUND_LEADERBOARD' | 'END';
 type GummyGumAccessState = 'checking' | 'granted' | 'denied';
 
 function shuffle<T>(arr: T[]): T[] {
@@ -29,6 +29,7 @@ function shuffle<T>(arr: T[]): T[] {
 
 function App() {
   const [screen, setScreen] = useState<Screen>('MODE_SELECT');
+  const [showGateModal, setShowGateModal] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
   const [flashColor, setFlashColor] = useState<'green' | 'red' | null>(null);
 
@@ -130,7 +131,7 @@ function App() {
 
   const handleHostLaunch = async (code: string) => {
     if (ggAccessState === 'denied') {
-      setScreen('LOCKED');
+      setShowGateModal(true);
       return;
     }
     await createSession(code);
@@ -141,7 +142,7 @@ function App() {
 
   const handlePlayerJoin = async (p: TeamMember, code: string) => {
     if (ggAccessState === 'denied') {
-      setScreen('LOCKED');
+      setShowGateModal(true);
       return;
     }
     const exists = await checkSessionExists(code);
@@ -285,9 +286,10 @@ function App() {
             <ModeSelect onSelect={(m) => setScreen(m === 'hr' ? 'HOST_SETUP' : 'PLAYER_JOIN')} />
           )}
 
-          {screen === 'LOCKED' && (
-            <div className="min-h-screen w-full relative bg-transparent font-sans flex justify-center items-center">
-              <div className="w-full max-w-[400px] mx-auto p-8 text-center relative">
+          {showGateModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+              <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setShowGateModal(false)} />
+              <div className="relative bg-surface border border-border rounded-[24px] w-full max-w-[400px] mx-auto p-8 text-center">
                 <h1 className="text-white text-xl font-bold mb-3">Locked</h1>
                 <p className="text-white/70 text-[15px] mb-6">
                   This experience is only available through GummyGum.
