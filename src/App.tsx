@@ -7,6 +7,7 @@ import { GameScreen } from './components/game/GameScreen';
 import { RoundReaction } from './components/game/RoundReaction';
 import { RoundLeaderboard } from './components/game/RoundLeaderboard';
 import { EndScreen } from './components/game/EndScreen';
+import { COLORS, makeSVG } from './data';
 import type { TeamMember, Opponent } from './data';
 import { useGameState, checkSessionExists } from './hooks/useGameState';
 import { resolveGummyGumLaunch, reportGummyGumResult } from './lib/gummygumSession';
@@ -80,15 +81,28 @@ function App() {
     const code = ggSession.roomCode;
     (async () => {
       if (ggSession.isHost) {
-        // Also what makes GummyGum's room pre-creation work: if GummyGum already created this room, we skip creating a new one and just join it.
         const exists = await checkSessionExists(code);
         if (!exists) await createSession(code);
         setIsHost(true);
+        setGameCode(code);
+        const hostNick = ggSession.player?.name || 'Host';
+        const hostPlayer: TeamMember = {
+          name: hostNick,
+          nick: hostNick,
+          color: COLORS[0],
+          facts: ['', '', '', ''],
+          imgSrc: makeSVG('🕵️', '#1a0a2a'),
+          ...(ggSession.player?.email && { ggEmail: ggSession.player.email }),
+        };
+        setPlayer(hostPlayer);
+        await joinSession(code, hostPlayer);
+        setScreen('PLAYER_LOBBY');
+        return;
       }
       setGameCode(code);
       setScreen('PLAYER_JOIN');
     })();
-  }, [ggSession, screen, createSession]);
+  }, [ggSession, screen, createSession, joinSession]);
 
   // Derive Current Round
   const curQ = useMemo(() => {
