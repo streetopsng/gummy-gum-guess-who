@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import type { Opponent } from '../../data';
 import { COLORS } from '../../data';
+import { closeGummyGumSession, getGummyGumSession } from '../../lib/gummygumSession';
 
 interface EndScreenProps {
   playerScore: number;
@@ -191,16 +192,39 @@ export const EndScreen: React.FC<EndScreenProps> = ({
 
         {onHome && (
           <div className="flex flex-col items-center gap-3 px-5 pb-8 lg:p-0 lg:mt-4 w-full shrink-0">
-            <button
-              onClick={onHome}
-              className="px-6 py-3 bg-surface/50 hover:bg-surface/80 border border-border rounded-full text-[14px] font-bold text-white transition-colors"
-            >
-              Return to Homepage
-            </button>
-            {showGummyGumExit && (
-              <a href="https://gummygum.app" className="text-muted text-[13px] font-semibold hover:text-white transition-colors cursor-pointer">
-                Done — back to GummyGum →
-              </a>
+            {showGummyGumExit ? (
+              <div className="flex flex-col sm:flex-row gap-2.5 w-full justify-center items-center">
+                {getGummyGumSession()?.isHost ? (
+                  <>
+                    <button
+                      onClick={() => closeGummyGumSession()}
+                      className="px-6 py-3 bg-amber hover:bg-amber/90 text-black font-extrabold text-[14px] rounded-full transition-all cursor-pointer shadow-md"
+                    >
+                      Close Session & Return to GummyGum
+                    </button>
+                    <button
+                      onClick={onHome}
+                      className="px-5 py-3 bg-surface/50 hover:bg-surface/80 border border-border rounded-full text-[13px] font-medium text-muted transition-colors cursor-pointer"
+                    >
+                      Homepage
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={onHome}
+                    className="px-6 py-3 bg-surface hover:bg-surface/80 border border-border text-white font-bold text-[14px] rounded-full transition-all cursor-pointer"
+                  >
+                    Leave Game
+                  </button>
+                )}
+              </div>
+            ) : (
+              <button
+                onClick={onHome}
+                className="px-6 py-3 bg-surface/50 hover:bg-surface/80 border border-border rounded-full text-[14px] font-bold text-white transition-colors cursor-pointer"
+              >
+                Return to Homepage
+              </button>
             )}
           </div>
         )}
