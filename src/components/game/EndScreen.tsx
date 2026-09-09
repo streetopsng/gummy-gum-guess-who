@@ -195,26 +195,28 @@ export const EndScreen: React.FC<EndScreenProps> = ({
             {showGummyGumExit ? (
               <div className="flex flex-col sm:flex-row gap-2.5 w-full justify-center items-center">
                 {getGummyGumSession()?.isHost ? (
-                  <button
-                    onClick={() => closeGummyGumSession()}
-                    className="px-6 py-3 bg-amber hover:bg-amber/90 text-black font-extrabold text-[14px] rounded-full transition-all cursor-pointer shadow-md"
-                  >
-                    Close Session & Return to GummyGum
-                  </button>
+                  <>
+                    <button
+                      onClick={() => closeGummyGumSession()}
+                      className="px-6 py-3 bg-amber hover:bg-amber/90 text-black font-extrabold text-[14px] rounded-full transition-all cursor-pointer shadow-md"
+                    >
+                      Close Session & Return to GummyGum
+                    </button>
+                    <button
+                      onClick={onHome}
+                      className="px-5 py-3 bg-surface/50 hover:bg-surface/80 border border-border rounded-full text-[13px] font-medium text-muted transition-colors cursor-pointer"
+                    >
+                      Homepage
+                    </button>
+                  </>
                 ) : (
                   <button
-                    onClick={() => returnToGummyGum()}
+                    onClick={onHome}
                     className="px-6 py-3 bg-surface hover:bg-surface/80 border border-border text-white font-bold text-[14px] rounded-full transition-all cursor-pointer"
                   >
-                    Return to GummyGum
+                    Leave Game
                   </button>
                 )}
-                <button
-                  onClick={onHome}
-                  className="px-5 py-3 bg-surface/50 hover:bg-surface/80 border border-border rounded-full text-[13px] font-medium text-muted transition-colors cursor-pointer"
-                >
-                  Homepage
-                </button>
               </div>
             ) : (
               <button
