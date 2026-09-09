@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import type { Opponent } from '../../data';
 import { COLORS } from '../../data';
-import { closeGummyGumSession, returnToGummyGum, getGummyGumSession } from '../../lib/gummygumSession';
+import { closeGummyGumSession, getGummyGumSession } from '../../lib/gummygumSession';
 
 interface EndScreenProps {
   playerScore: number;
