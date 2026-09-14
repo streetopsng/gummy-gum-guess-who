@@ -376,6 +376,7 @@ function App() {
               playerNick={player?.nick || ''}
               playerColor={player?.color || ''}
               onAnswer={handleAnswer}
+              isHost={isHost && !player}
             />
           )}
 

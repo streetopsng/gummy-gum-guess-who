@@ -12,6 +12,7 @@ interface GameScreenProps {
   playerNick: string;
   playerColor: string;
   onAnswer: (correct: boolean, points: number) => void;
+  isHost?: boolean;
 }
 
 export const GameScreen: React.FC<GameScreenProps> = ({
@@ -25,6 +26,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({
   playerNick,
   playerColor,
   onAnswer,
+  isHost = false,
 }) => {
   const [timeLeft, setTimeLeft] = useState(15);
   const [answered, setAnswered] = useState(false);
@@ -42,7 +44,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({
   }, [subject]);
 
   useEffect(() => {
-    if (answered) return;
+    if (answered || isHost) return;
 
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
@@ -56,7 +58,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [answered]);
+  }, [answered, isHost]);
 
   const handleTimeUp = () => {
     if (!answered) {
@@ -98,10 +100,13 @@ export const GameScreen: React.FC<GameScreenProps> = ({
   const fact = subject.currentFact;
 
   const isFactOwner = subject.nick === playerNick;
+  // Host presents/moderates only — same live progress/stats as everyone
+  // else, just never an interactive answer grid of their own.
+  const isNonInteractive = isFactOwner || isHost;
 
   const meEntry = { name: 'You', nick: playerNick, color: playerColor, score, streak };
-  const allPlayers = [...opponents, meEntry].sort((a, b) => b.score - a.score);
-  const top3 = allPlayers.slice(0, 3);
+  const allPlayers = isHost ? opponents : [...opponents, meEntry];
+  const top3 = [...allPlayers].sort((a, b) => b.score - a.score).slice(0, 3);
 
   return (
     <div className="flex flex-col h-full lg:h-full w-full relative">
@@ -112,12 +117,14 @@ export const GameScreen: React.FC<GameScreenProps> = ({
             Round {round} of {totalRounds}
           </div>
         </div>
-        <div className="text-right">
-          <div className="text-[22px] lg:text-[32px] font-black text-amber leading-none">{score}</div>
-          {streak >= 2 && (
-            <div className="text-[11px] lg:text-[13px] text-coral mt-1">🔥 {streak} streak</div>
-          )}
-        </div>
+        {!isHost && (
+          <div className="text-right">
+            <div className="text-[22px] lg:text-[32px] font-black text-amber leading-none">{score}</div>
+            {streak >= 2 && (
+              <div className="text-[11px] lg:text-[13px] text-coral mt-1">🔥 {streak} streak</div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="flex flex-col lg:flex-row flex-1 overflow-hidden min-h-0">
@@ -135,13 +142,13 @@ export const GameScreen: React.FC<GameScreenProps> = ({
 
             <div
               className={`absolute bottom-3 lg:bottom-4 left-0 right-0 text-center text-[15px] lg:text-[18px] font-extrabold text-coral tracking-[0.5px] ${
-                reveal || isFactOwner ? 'block' : 'hidden'
+                reveal || isNonInteractive ? 'block' : 'hidden'
               }`}
             >
               {isFactOwner ? "Your Fact" : subject.name}
             </div>
 
-            {!isFactOwner && (
+            {!isNonInteractive && (
               <>
                 <div
                   className={`absolute inset-0 bg-[#22C55E40] rounded-sm flex flex-col items-center justify-center ${
@@ -204,10 +211,14 @@ export const GameScreen: React.FC<GameScreenProps> = ({
             </div>
           </div>
 
-          {isFactOwner ? (
+          {isNonInteractive ? (
             <div className="flex flex-col items-center justify-center h-full text-center mt-8 lg:mt-0">
-              <div className="text-[20px] lg:text-[24px] font-bold text-amber mb-3">This is your fact!</div>
-              <div className="text-[14px] lg:text-[16px] text-muted">Watch the others guess...</div>
+              <div className="text-[20px] lg:text-[24px] font-bold text-amber mb-3">
+                {isFactOwner ? "This is your fact!" : "Everyone's guessing…"}
+              </div>
+              <div className="text-[14px] lg:text-[16px] text-muted">
+                {isFactOwner ? "Watch the others guess..." : `Who does "${subject.name}"'s fact belong to?`}
+              </div>
               <div className="mt-8 flex gap-2">
                 <div className="w-2 h-2 bg-coral rounded-full animate-bounce"></div>
                 <div className="w-2 h-2 bg-coral rounded-full animate-bounce" style={{ animationDelay: '0.15s' }}></div>
