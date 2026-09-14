@@ -17,7 +17,6 @@ export const PlayerLobby: React.FC<PlayerLobbyProps> = ({ player, isHost, gameCo
   const [localFacts, setLocalFacts] = useState<string[]>(['', '', '', '']);
   const getInitials = (name: string) => name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
 
-  // Find my current state from joinedPlayers
   const myState = player ? joinedPlayers.find(p => p.nick === player.nick) : null;
   const factsFilled = myState?.facts && myState.facts.every(f => f.trim() !== '');
 
@@ -29,7 +28,6 @@ export const PlayerLobby: React.FC<PlayerLobbyProps> = ({ player, isHost, gameCo
     }
   };
 
-  // Filter out the current player from the list of others
   const others = joinedPlayers.filter(p => p.nick !== player?.nick);
 
   return (
@@ -114,7 +112,6 @@ export const PlayerLobby: React.FC<PlayerLobbyProps> = ({ player, isHost, gameCo
         </div>
       </div>
 
-      {/* Main Content Area (Joined Players) */}
       <div className="flex-1 flex flex-col lg:overflow-hidden relative min-h-0">
         <div className="flex-1 overflow-y-auto scrollbar-hide lg:p-8">
           <div className="px-[22px] pb-2 lg:px-0 lg:pb-5">

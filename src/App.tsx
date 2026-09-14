@@ -35,12 +35,10 @@ function App() {
 
   // Global State removed since HR Setup is skipped
   
-  // Realtime Game State
   const [gameCode, setGameCode] = useState<string | null>(null);
   const [isHost, setIsHost] = useState(false);
   const { session, createSession, joinSession, updatePlayerFacts, updatePlayerAnswer, startGame } = useGameState(gameCode || undefined);
   
-  // Local Player State
   const [player, setPlayer] = useState<TeamMember | null>(null);
 
   const showToast = (msg: string) => {
@@ -80,8 +78,7 @@ function App() {
     const code = ggSession.roomCode;
     (async () => {
       if (ggSession.isHost) {
-        // Presents/moderates only — never seated as a player (no facts to
-        // guess, no score, never in the reported leaderboard).
+        // Host never plays — no facts, no score, never seated as a player.
         const exists = await checkSessionExists(code);
         if (!exists) await createSession(code);
         setIsHost(true);
@@ -94,7 +91,6 @@ function App() {
     })();
   }, [ggSession, screen, createSession, joinSession]);
 
-  // Derive Current Round
   const curQ = useMemo(() => {
     if (!session || !session.players || !session.gameQueue || session.gameQueue.length === 0) return 0;
     const players = Object.values(session.players);
@@ -138,8 +134,7 @@ function App() {
       setShowGateModal(true);
       return;
     }
-    // Presents/moderates only — skip the participant nickname/avatar join
-    // screen entirely, straight to the lobby with no player seated.
+    // Host skips the participant join screen — straight to the lobby.
     await createSession(code);
     setGameCode(code);
     setIsHost(true);
@@ -276,7 +271,23 @@ function App() {
     return <div className="min-h-screen w-full bg-transparent" />;
   }
 
-  // Render Screens
+  if (ggAccessState === 'denied') {
+    return (
+      <div className="min-h-screen w-full bg-transparent font-sans flex items-center justify-center p-6">
+        <BackgroundFx />
+        <div className="relative bg-surface border border-border rounded-[24px] w-full max-w-[400px] mx-auto p-8 text-center">
+          <h1 className="text-white text-xl font-bold mb-3">Locked</h1>
+          <p className="text-white/70 text-[15px] mb-6">
+            This experience is only available through GummyGum.
+          </p>
+          <a href="https://gummygum.app">
+            <Button variant="amber">Go to GummyGum</Button>
+          </a>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen w-full relative bg-transparent font-sans flex justify-center lg:items-center">
       <BackgroundFx />
@@ -376,6 +387,7 @@ function App() {
               playerNick={player?.nick || ''}
               playerColor={player?.color || ''}
               onAnswer={handleAnswer}
+              isHost={isHost && !player}
             />
           )}
 
