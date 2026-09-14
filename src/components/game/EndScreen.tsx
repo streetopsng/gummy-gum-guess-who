@@ -26,7 +26,6 @@ export const EndScreen: React.FC<EndScreenProps> = ({
   const [showPhrase, setShowPhrase] = useState(false);
 
   useEffect(() => {
-    // Generate confetti
     const newConfetti = [];
     for (let i = 0; i < 20; i++) {
       newConfetti.push({
@@ -89,7 +88,6 @@ export const EndScreen: React.FC<EndScreenProps> = ({
         </div>
 
         <div className="flex items-end justify-center gap-2 lg:gap-4 px-5 w-full mt-4 z-10">
-          {/* Silver */}
           {all[1] && (
             <div className="flex flex-col items-center gap-1 lg:gap-2">
               <div className="text-[36px] animate-drop-in" style={{ animationDelay: '0s' }}>
@@ -107,7 +105,6 @@ export const EndScreen: React.FC<EndScreenProps> = ({
             </div>
           )}
 
-          {/* Gold */}
           {all[0] && (
             <div className="flex flex-col items-center gap-1 lg:gap-2">
               <div className="text-[36px] animate-drop-in" style={{ animationDelay: '0.2s' }}>
@@ -125,7 +122,6 @@ export const EndScreen: React.FC<EndScreenProps> = ({
             </div>
           )}
 
-          {/* Bronze */}
           {all[2] && (
             <div className="flex flex-col items-center gap-1 lg:gap-2">
               <div className="text-[36px] animate-drop-in" style={{ animationDelay: '0.4s' }}>

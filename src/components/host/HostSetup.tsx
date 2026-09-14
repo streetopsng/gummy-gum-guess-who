@@ -10,7 +10,6 @@ export const HostSetup: React.FC<HostSetupProps> = ({ onBack, onLaunch }) => {
   const [gameCode, setGameCode] = useState('');
 
   useEffect(() => {
-    // Generate a random game code
     setGameCode('GW-' + Math.floor(100 + Math.random() * 900));
   }, []);
 

@@ -35,7 +35,6 @@ export const GameScreen: React.FC<GameScreenProps> = ({
   const [isCorrect, setIsCorrect] = useState(false);
 
   useEffect(() => {
-    // Reset state for new round
     setTimeLeft(15);
     setAnswered(false);
     setSelectedCard(null);
@@ -108,7 +107,6 @@ export const GameScreen: React.FC<GameScreenProps> = ({
 
   return (
     <div className="flex flex-col h-full lg:h-full w-full relative">
-      {/* Header */}
       <div className="px-5 pt-4 pb-2 lg:px-8 lg:pt-8 flex items-center justify-between shrink-0">
         <div>
           <div className="text-[11px] lg:text-[13px] text-muted tracking-[1.5px] uppercase font-semibold">
@@ -185,7 +183,6 @@ export const GameScreen: React.FC<GameScreenProps> = ({
         {/* Right/Bottom: Options Grid & Hint */}
         <div className="flex-1 flex flex-col justify-center px-5 lg:p-8 relative">
           
-          {/* Mini Leaderboard (Top 3) */}
           <div className="hidden lg:flex justify-end mb-6">
             <div className="bg-surface/40 backdrop-blur-md border border-border rounded-lg px-4 py-2 flex gap-6">
               {top3.map((p, i) => (

@@ -10,7 +10,6 @@ interface RoundReactionProps {
 export const RoundReaction: React.FC<RoundReactionProps> = ({ subject, playerNick, wrongGuesses, totalPlayers }) => {
   const isFactOwner = subject.nick === playerNick;
   
-  // Calculate if majority got it wrong
   const guessersCount = totalPlayers - 1;
   const majorityWrong = wrongGuesses >= guessersCount / 2;
 

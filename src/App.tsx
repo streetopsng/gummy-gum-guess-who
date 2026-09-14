@@ -35,12 +35,10 @@ function App() {
 
   // Global State removed since HR Setup is skipped
   
-  // Realtime Game State
   const [gameCode, setGameCode] = useState<string | null>(null);
   const [isHost, setIsHost] = useState(false);
   const { session, createSession, joinSession, updatePlayerFacts, updatePlayerAnswer, startGame } = useGameState(gameCode || undefined);
   
-  // Local Player State
   const [player, setPlayer] = useState<TeamMember | null>(null);
 
   const showToast = (msg: string) => {
@@ -93,7 +91,6 @@ function App() {
     })();
   }, [ggSession, screen, createSession, joinSession]);
 
-  // Derive Current Round
   const curQ = useMemo(() => {
     if (!session || !session.players || !session.gameQueue || session.gameQueue.length === 0) return 0;
     const players = Object.values(session.players);
@@ -274,7 +271,6 @@ function App() {
     return <div className="min-h-screen w-full bg-transparent" />;
   }
 
-  // Render Screens
   return (
     <div className="min-h-screen w-full relative bg-transparent font-sans flex justify-center lg:items-center">
       <BackgroundFx />
