@@ -271,6 +271,23 @@ function App() {
     return <div className="min-h-screen w-full bg-transparent" />;
   }
 
+  if (ggAccessState === 'denied') {
+    return (
+      <div className="min-h-screen w-full bg-transparent font-sans flex items-center justify-center p-6">
+        <BackgroundFx />
+        <div className="relative bg-surface border border-border rounded-[24px] w-full max-w-[400px] mx-auto p-8 text-center">
+          <h1 className="text-white text-xl font-bold mb-3">Locked</h1>
+          <p className="text-white/70 text-[15px] mb-6">
+            This experience is only available through GummyGum.
+          </p>
+          <a href="https://gummygum.app">
+            <Button variant="amber">Go to GummyGum</Button>
+          </a>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen w-full relative bg-transparent font-sans flex justify-center lg:items-center">
       <BackgroundFx />
