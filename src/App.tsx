@@ -80,8 +80,7 @@ function App() {
     const code = ggSession.roomCode;
     (async () => {
       if (ggSession.isHost) {
-        // Presents/moderates only — never seated as a player (no facts to
-        // guess, no score, never in the reported leaderboard).
+        // Host never plays — no facts, no score, never seated as a player.
         const exists = await checkSessionExists(code);
         if (!exists) await createSession(code);
         setIsHost(true);
@@ -138,8 +137,7 @@ function App() {
       setShowGateModal(true);
       return;
     }
-    // Presents/moderates only — skip the participant nickname/avatar join
-    // screen entirely, straight to the lobby with no player seated.
+    // Host skips the participant join screen — straight to the lobby.
     await createSession(code);
     setGameCode(code);
     setIsHost(true);

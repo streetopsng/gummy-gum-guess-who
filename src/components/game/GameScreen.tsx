@@ -100,8 +100,6 @@ export const GameScreen: React.FC<GameScreenProps> = ({
   const fact = subject.currentFact;
 
   const isFactOwner = subject.nick === playerNick;
-  // Host presents/moderates only — same live progress/stats as everyone
-  // else, just never an interactive answer grid of their own.
   const isNonInteractive = isFactOwner || isHost;
 
   const meEntry = { name: 'You', nick: playerNick, color: playerColor, score, streak };
