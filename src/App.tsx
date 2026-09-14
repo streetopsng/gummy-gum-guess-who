@@ -7,7 +7,6 @@ import { GameScreen } from './components/game/GameScreen';
 import { RoundReaction } from './components/game/RoundReaction';
 import { RoundLeaderboard } from './components/game/RoundLeaderboard';
 import { EndScreen } from './components/game/EndScreen';
-import { COLORS, makeSVG } from './data';
 import type { TeamMember, Opponent } from './data';
 import { useGameState, checkSessionExists } from './hooks/useGameState';
 import { resolveGummyGumLaunch, reportGummyGumResult } from './lib/gummygumSession';
@@ -81,21 +80,12 @@ function App() {
     const code = ggSession.roomCode;
     (async () => {
       if (ggSession.isHost) {
+        // Presents/moderates only — never seated as a player (no facts to
+        // guess, no score, never in the reported leaderboard).
         const exists = await checkSessionExists(code);
         if (!exists) await createSession(code);
         setIsHost(true);
         setGameCode(code);
-        const hostNick = ggSession.player?.name || 'Host';
-        const hostPlayer: TeamMember = {
-          name: hostNick,
-          nick: hostNick,
-          color: COLORS[0],
-          facts: ['', '', '', ''],
-          imgSrc: makeSVG('🕵️', '#1a0a2a'),
-          ...(ggSession.player?.email && { ggEmail: ggSession.player.email }),
-        };
-        setPlayer(hostPlayer);
-        await joinSession(code, hostPlayer);
         setScreen('PLAYER_LOBBY');
         return;
       }
@@ -148,10 +138,12 @@ function App() {
       setShowGateModal(true);
       return;
     }
+    // Presents/moderates only — skip the participant nickname/avatar join
+    // screen entirely, straight to the lobby with no player seated.
     await createSession(code);
     setGameCode(code);
     setIsHost(true);
-    setScreen('PLAYER_JOIN');
+    setScreen('PLAYER_LOBBY');
   };
 
   const handlePlayerJoin = async (p: TeamMember, code: string) => {
