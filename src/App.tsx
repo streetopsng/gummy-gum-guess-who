@@ -336,10 +336,9 @@ function App() {
           )}
 
           {screen === 'PLAYER_LOBBY' && (
-            <PlayerLobby 
-              player={player || undefined} 
+            <PlayerLobby
+              player={player || undefined}
               isHost={isHost}
-              gameCode={gameCode || ''}
               joinedPlayers={session?.players ? Object.values(session.players) : []}
               onStart={handleStartGame}
               onUpdateFacts={(facts) => {

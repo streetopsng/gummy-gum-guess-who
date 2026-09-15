@@ -7,13 +7,12 @@ import { Badge } from '../ui/Badge';
 interface PlayerLobbyProps {
   player?: TeamMember;
   isHost: boolean;
-  gameCode: string;
   joinedPlayers: PlayerState[];
   onStart: () => void;
   onUpdateFacts: (facts: string[]) => void;
 }
 
-export const PlayerLobby: React.FC<PlayerLobbyProps> = ({ player, isHost, gameCode, joinedPlayers, onStart, onUpdateFacts }) => {
+export const PlayerLobby: React.FC<PlayerLobbyProps> = ({ player, isHost, joinedPlayers, onStart, onUpdateFacts }) => {
   const [localFacts, setLocalFacts] = useState<string[]>(['', '', '', '']);
   const getInitials = (name: string) => name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
 
@@ -40,7 +39,7 @@ export const PlayerLobby: React.FC<PlayerLobbyProps> = ({ player, isHost, gameCo
             <div className="text-[32px] lg:text-[40px]">🕵️</div>
             <div>
               <div className="text-[20px] lg:text-[24px] font-black">Guess Who?</div>
-              <div className="text-[12px] lg:text-[13px] text-muted mt-[1px]">StreetOps · {gameCode}</div>
+              <div className="text-[12px] lg:text-[13px] text-muted mt-[1px]">StreetOps</div>
             </div>
           </div>
         </div>
@@ -92,7 +91,6 @@ export const PlayerLobby: React.FC<PlayerLobbyProps> = ({ player, isHost, gameCo
         ) : (
           <div className="mx-[22px] lg:mx-0 mb-4 bg-gradient-to-br from-coral to-[#ff8c6b] rounded-[14px] p-5 text-center shadow-xl shadow-coral/20">
             <div className="text-[11px] tracking-[2px] uppercase text-white/70 font-semibold mb-2">Host Dashboard</div>
-            <div className="text-[32px] font-black tracking-[8px] text-white leading-none mb-2">{gameCode}</div>
             <div className="text-[12px] text-white/80 leading-[1.4]">Waiting for players to join...</div>
           </div>
         )}
