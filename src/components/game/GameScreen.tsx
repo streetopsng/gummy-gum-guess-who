@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import type { TeamMember, Opponent } from '../../data';
+import { avatarUrl } from '../../lib/avatars';
 
 interface GameScreenProps {
   subject: any;
@@ -11,6 +12,7 @@ interface GameScreenProps {
   opponents: Opponent[];
   playerNick: string;
   playerColor: string;
+  playerAvatarId?: string;
   onAnswer: (correct: boolean, points: number) => void;
   isHost?: boolean;
 }
@@ -25,6 +27,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({
   opponents,
   playerNick,
   playerColor,
+  playerAvatarId,
   onAnswer,
   isHost = false,
 }) => {
@@ -101,7 +104,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({
   const isFactOwner = subject.nick === playerNick;
   const isNonInteractive = isFactOwner || isHost;
 
-  const meEntry = { name: 'You', nick: playerNick, color: playerColor, score, streak };
+  const meEntry = { name: 'You', nick: playerNick, color: playerColor, score, streak, avatarId: playerAvatarId };
   const allPlayers = isHost ? opponents : [...opponents, meEntry];
   const top3 = [...allPlayers].sort((a, b) => b.score - a.score).slice(0, 3);
 
@@ -188,12 +191,16 @@ export const GameScreen: React.FC<GameScreenProps> = ({
               {top3.map((p, i) => (
                 <div key={p.nick} className="flex items-center gap-2">
                   <div className="text-[14px] font-bold text-muted">{i + 1}</div>
-                  <div 
-                    className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-extrabold text-[#1a0f00]"
-                    style={{ background: p.color }}
-                  >
-                    {getInitials(p.name)}
-                  </div>
+                  {p.avatarId ? (
+                    <img src={avatarUrl(p.avatarId)} className="w-5 h-5 rounded-full object-cover" />
+                  ) : (
+                    <div
+                      className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-extrabold text-[#1a0f00]"
+                      style={{ background: p.color }}
+                    >
+                      {getInitials(p.name)}
+                    </div>
+                  )}
                   <div>
                     <div className="text-[11px] font-bold leading-none mb-0.5" style={{ color: p.color }}>{p.nick}</div>
                     <div className="flex items-center gap-1.5">
@@ -249,12 +256,19 @@ export const GameScreen: React.FC<GameScreenProps> = ({
                     onClick={() => handleAnswer(opt.nick, isTarget)}
                     className={`border-[1.5px] rounded-[14px] p-3 lg:p-5 cursor-pointer transition-all duration-150 flex flex-col items-center gap-1.5 lg:gap-2.5 text-center ${btnClass} ${!answered ? 'hover:border-amber hover:bg-[#F5A62314] lg:hover:-translate-y-1' : ''}`}
                   >
-                    <div
-                      className={`w-[38px] h-[38px] lg:w-[54px] lg:h-[54px] rounded-full flex items-center justify-center text-[13px] lg:text-[18px] font-extrabold text-[#1a0f00] ${avatarClass}`}
-                      style={{ background: opt.color }}
-                    >
-                      {getInitials(opt.name)}
-                    </div>
+                    {opt.avatarId ? (
+                      <img
+                        src={avatarUrl(opt.avatarId)}
+                        className="w-[38px] h-[38px] lg:w-[54px] lg:h-[54px] rounded-full object-cover"
+                      />
+                    ) : (
+                      <div
+                        className={`w-[38px] h-[38px] lg:w-[54px] lg:h-[54px] rounded-full flex items-center justify-center text-[13px] lg:text-[18px] font-extrabold text-[#1a0f00] ${avatarClass}`}
+                        style={{ background: opt.color }}
+                      >
+                        {getInitials(opt.name)}
+                      </div>
+                    )}
                     <div className="text-[12px] lg:text-[15px] font-bold leading-[1.3]">{opt.name}</div>
                     <div className="text-[10px] lg:text-[12px] text-muted">{opt.nick}</div>
                   </button>

@@ -20,6 +20,7 @@ export interface TeamMember {
   photo?: string;
   imgSrc?: string;
   ggEmail?: string;
+  avatarId?: string;
 }
 
 export interface GameRoundItem extends TeamMember {
@@ -42,5 +43,6 @@ export interface Opponent {
   score: number;
   streak: number;
   maxStreak: number;
+  avatarId?: string;
 }
 

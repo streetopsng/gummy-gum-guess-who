@@ -1,5 +1,6 @@
 import React from 'react';
 import type { Opponent } from '../../data';
+import { avatarUrl } from '../../lib/avatars';
 
 interface RoundLeaderboardProps {
   round: number;
@@ -10,6 +11,7 @@ interface RoundLeaderboardProps {
   playerNick: string;
   playerColor: string;
   playerName: string;
+  playerAvatarId?: string;
 }
 
 export const RoundLeaderboard: React.FC<RoundLeaderboardProps> = ({
@@ -20,11 +22,12 @@ export const RoundLeaderboard: React.FC<RoundLeaderboardProps> = ({
   playerStreak,
   playerNick,
   playerColor,
-  playerName
+  playerName,
+  playerAvatarId
 }) => {
   const getInitials = (name: string) => name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
 
-  const meEntry = { name: playerName, nick: playerNick, color: playerColor, score: playerScore, streak: playerStreak, maxStreak: 0 };
+  const meEntry = { name: playerName, nick: playerNick, color: playerColor, score: playerScore, streak: playerStreak, maxStreak: 0, avatarId: playerAvatarId };
   const allPlayers = [...opponents, meEntry].sort((a, b) => b.score - a.score);
 
   return (
@@ -43,12 +46,16 @@ export const RoundLeaderboard: React.FC<RoundLeaderboardProps> = ({
           {allPlayers.map((p, i) => (
             <div key={p.nick} className={`flex items-center gap-3 p-4 border rounded-xl transition-all ${p.nick === playerNick ? 'bg-amber/10 border-amber/50 scale-[1.02]' : 'bg-surface border-border/50'}`}>
               <div className="w-8 text-center text-[16px] font-black text-muted">{i + 1}</div>
-              <div 
-                className="w-12 h-12 rounded-full flex items-center justify-center text-[16px] font-extrabold text-[#1a0f00]"
-                style={{ background: p.color }}
-              >
-                {getInitials(p.name)}
-              </div>
+              {p.avatarId ? (
+                <img src={avatarUrl(p.avatarId)} className="w-12 h-12 rounded-full object-cover" />
+              ) : (
+                <div
+                  className="w-12 h-12 rounded-full flex items-center justify-center text-[16px] font-extrabold text-[#1a0f00]"
+                  style={{ background: p.color }}
+                >
+                  {getInitials(p.name)}
+                </div>
+              )}
               <div className="flex-1 ml-2">
                 <div className="font-bold text-[18px]">{p.nick} {p.nick === playerNick && <span className="text-[12px] text-amber ml-2">(You)</span>}</div>
                 {p.streak >= 2 && <div className="text-[12px] text-coral mt-0.5">🔥 {p.streak} streak</div>}

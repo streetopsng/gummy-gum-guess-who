@@ -2,12 +2,14 @@ import React, { useEffect, useState } from 'react';
 import type { Opponent } from '../../data';
 import { COLORS } from '../../data';
 import { closeGummyGumSession, getGummyGumSession } from '../../lib/gummygumSession';
+import { avatarUrl } from '../../lib/avatars';
 
 interface EndScreenProps {
   playerScore: number;
   playerMaxStreak: number;
   playerNick: string;
   playerColor: string;
+  playerAvatarId?: string;
   opponents: Opponent[];
   onHome?: () => void;
   showGummyGumExit?: boolean;
@@ -18,6 +20,7 @@ export const EndScreen: React.FC<EndScreenProps> = ({
   playerMaxStreak,
   playerNick,
   playerColor,
+  playerAvatarId,
   opponents,
   onHome,
   showGummyGumExit,
@@ -52,7 +55,7 @@ export const EndScreen: React.FC<EndScreenProps> = ({
 
   const all = [...opponents];
   if (playerNick !== 'Host') {
-    all.push({ name: 'You', nick: playerNick, color: playerColor, score: playerScore, streak: 0, maxStreak: playerMaxStreak });
+    all.push({ name: 'You', nick: playerNick, color: playerColor, score: playerScore, streak: 0, maxStreak: playerMaxStreak, avatarId: playerAvatarId });
   }
   all.sort((a, b) => b.score - a.score);
 
@@ -91,12 +94,16 @@ export const EndScreen: React.FC<EndScreenProps> = ({
           {all[1] && (
             <div className="flex flex-col items-center gap-1 lg:gap-2">
               <div className="text-[36px] animate-drop-in" style={{ animationDelay: '0s' }}>
-                <div
-                  className="w-[44px] h-[44px] lg:w-[64px] lg:h-[64px] rounded-full flex items-center justify-center text-[14px] lg:text-[18px] font-extrabold text-[#1a0f00]"
-                  style={{ background: all[1].color }}
-                >
-                  {getInitials(all[1].name)}
-                </div>
+                {all[1].avatarId ? (
+                  <img src={avatarUrl(all[1].avatarId)} className="w-[44px] h-[44px] lg:w-[64px] lg:h-[64px] rounded-full object-cover" />
+                ) : (
+                  <div
+                    className="w-[44px] h-[44px] lg:w-[64px] lg:h-[64px] rounded-full flex items-center justify-center text-[14px] lg:text-[18px] font-extrabold text-[#1a0f00]"
+                    style={{ background: all[1].color }}
+                  >
+                    {getInitials(all[1].name)}
+                  </div>
+                )}
               </div>
               <div className="text-[11px] lg:text-[14px] font-bold text-center max-w-[76px] lg:max-w-[100px] truncate w-full">{all[1].nick}</div>
               <div className="w-[76px] lg:w-[100px] rounded-t-md flex items-center justify-center text-[16px] lg:text-[24px] font-extrabold h-[60px] lg:h-[100px] bg-[#9ca3af] text-[#1a1a1a]">
@@ -108,12 +115,16 @@ export const EndScreen: React.FC<EndScreenProps> = ({
           {all[0] && (
             <div className="flex flex-col items-center gap-1 lg:gap-2">
               <div className="text-[36px] animate-drop-in" style={{ animationDelay: '0.2s' }}>
-                <div
-                  className="w-[44px] h-[44px] lg:w-[80px] lg:h-[80px] rounded-full flex items-center justify-center text-[14px] lg:text-[22px] font-extrabold text-[#1a0f00]"
-                  style={{ background: all[0].color }}
-                >
-                  {getInitials(all[0].name)}
-                </div>
+                {all[0].avatarId ? (
+                  <img src={avatarUrl(all[0].avatarId)} className="w-[44px] h-[44px] lg:w-[80px] lg:h-[80px] rounded-full object-cover" />
+                ) : (
+                  <div
+                    className="w-[44px] h-[44px] lg:w-[80px] lg:h-[80px] rounded-full flex items-center justify-center text-[14px] lg:text-[22px] font-extrabold text-[#1a0f00]"
+                    style={{ background: all[0].color }}
+                  >
+                    {getInitials(all[0].name)}
+                  </div>
+                )}
               </div>
               <div className="text-[11px] lg:text-[16px] font-bold text-center max-w-[76px] lg:max-w-[120px] truncate w-full">{all[0].nick}</div>
               <div className="w-[76px] lg:w-[120px] rounded-t-md flex items-center justify-center text-[16px] lg:text-[32px] font-extrabold h-[80px] lg:h-[140px] bg-amber text-[#1a0f00]">
@@ -125,12 +136,16 @@ export const EndScreen: React.FC<EndScreenProps> = ({
           {all[2] && (
             <div className="flex flex-col items-center gap-1 lg:gap-2">
               <div className="text-[36px] animate-drop-in" style={{ animationDelay: '0.4s' }}>
-                <div
-                  className="w-[44px] h-[44px] lg:w-[60px] lg:h-[60px] rounded-full flex items-center justify-center text-[14px] lg:text-[18px] font-extrabold text-[#1a0f00]"
-                  style={{ background: all[2].color }}
-                >
-                  {getInitials(all[2].name)}
-                </div>
+                {all[2].avatarId ? (
+                  <img src={avatarUrl(all[2].avatarId)} className="w-[44px] h-[44px] lg:w-[60px] lg:h-[60px] rounded-full object-cover" />
+                ) : (
+                  <div
+                    className="w-[44px] h-[44px] lg:w-[60px] lg:h-[60px] rounded-full flex items-center justify-center text-[14px] lg:text-[18px] font-extrabold text-[#1a0f00]"
+                    style={{ background: all[2].color }}
+                  >
+                    {getInitials(all[2].name)}
+                  </div>
+                )}
               </div>
               <div className="text-[11px] lg:text-[14px] font-bold text-center max-w-[76px] lg:max-w-[100px] truncate w-full">{all[2].nick}</div>
               <div className="w-[76px] lg:w-[100px] rounded-t-md flex items-center justify-center text-[16px] lg:text-[24px] font-extrabold h-[44px] lg:h-[70px] bg-[#b87333] text-[#1a1a1a]">
@@ -156,12 +171,16 @@ export const EndScreen: React.FC<EndScreenProps> = ({
             {all.map((p, i) => (
               <div key={p.nick} className="flex items-center gap-2.5 lg:gap-4 py-[9px] lg:py-3.5 px-3 lg:px-5 border-b border-border/50 text-[13px] lg:text-[15px] hover:bg-surface/50 transition-colors">
                 <div className="w-[18px] lg:w-[24px] font-bold text-muted text-[12px] lg:text-[14px] text-center">{i + 1}</div>
-                <div
-                  className="w-7 h-7 lg:w-9 lg:h-9 rounded-full flex items-center justify-center text-[10px] lg:text-[12px] font-extrabold text-[#1a0f00]"
-                  style={{ background: p.color }}
-                >
-                  {getInitials(p.name)}
-                </div>
+                {p.avatarId ? (
+                  <img src={avatarUrl(p.avatarId)} className="w-7 h-7 lg:w-9 lg:h-9 rounded-full object-cover" />
+                ) : (
+                  <div
+                    className="w-7 h-7 lg:w-9 lg:h-9 rounded-full flex items-center justify-center text-[10px] lg:text-[12px] font-extrabold text-[#1a0f00]"
+                    style={{ background: p.color }}
+                  >
+                    {getInitials(p.name)}
+                  </div>
+                )}
                 <div className="flex-1">
                   <div className="font-semibold">{p.nick}</div>
                   {p.maxStreak > 1 && (
