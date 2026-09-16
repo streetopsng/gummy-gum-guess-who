@@ -205,7 +205,8 @@ function App() {
         color: p.color,
         score: p.score,
         streak: p.streak,
-        maxStreak: p.maxStreak
+        maxStreak: p.maxStreak,
+        avatarId: p.avatarId
       }));
   }, [session, player]);
 
@@ -368,6 +369,7 @@ function App() {
               playerNick={player?.nick || ''}
               playerColor={player?.color || '#000'}
               playerName={player?.name || 'You'}
+              playerAvatarId={player?.avatarId}
             />
           )}
 
@@ -385,17 +387,19 @@ function App() {
               opponents={opponents}
               playerNick={player?.nick || ''}
               playerColor={player?.color || ''}
+              playerAvatarId={player?.avatarId}
               onAnswer={handleAnswer}
               isHost={isHost && !player}
             />
           )}
 
           {screen === 'END' && (
-            <EndScreen 
+            <EndScreen
               playerScore={playerScore}
               playerMaxStreak={playerMaxStreak}
               playerNick={isHost && !player ? 'Host' : (player?.nick || '')}
               playerColor={player?.color || '#000'}
+              playerAvatarId={player?.avatarId}
               opponents={opponents}
               onHome={() => {
                 setScreen('MODE_SELECT');

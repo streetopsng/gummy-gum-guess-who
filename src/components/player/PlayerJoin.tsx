@@ -3,6 +3,7 @@ import { COLORS, makeSVG } from '../../data';
 import type { TeamMember } from '../../data';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
+import { AVATAR_IDS, avatarUrl } from '../../lib/avatars';
 
 interface PlayerJoinProps {
   onBack: () => void;
@@ -15,6 +16,7 @@ interface PlayerJoinProps {
 export const PlayerJoin: React.FC<PlayerJoinProps> = ({ onBack, onJoin, initialCode, initialNick, ggEmail }) => {
   const [code, setCode] = useState(initialCode || '');
   const [nick, setNick] = useState(initialNick || '');
+  const [avatarId, setAvatarId] = useState(AVATAR_IDS[0]);
   const [error, setError] = useState('');
 
   const handleJoin = async () => {
@@ -42,6 +44,7 @@ export const PlayerJoin: React.FC<PlayerJoinProps> = ({ onBack, onJoin, initialC
       color: randomColor,
       facts: ['', '', '', ''],
       imgSrc: makeSVG(emoji, randomBg),
+      avatarId,
       ...(ggEmail && { ggEmail }),
     };
 
@@ -67,14 +70,41 @@ export const PlayerJoin: React.FC<PlayerJoinProps> = ({ onBack, onJoin, initialC
             value={code}
             onChange={(e) => setCode(e.target.value)}
           />
-          <Input 
-            placeholder="Codename/Nickname (e.g. QuietStorm)" 
-            maxLength={20} 
+          <Input
+            placeholder="Codename/Nickname (e.g. QuietStorm)"
+            maxLength={20}
             value={nick}
             onChange={(e) => setNick(e.target.value)}
             error={error}
           />
-          
+
+          <div className="mt-1">
+            <div className="text-[11px] text-muted tracking-widest uppercase mb-[7px] font-semibold text-center">
+              Choose your avatar
+            </div>
+            <div className="grid grid-cols-6 gap-2 max-h-[168px] overflow-y-auto p-1 scrollbar-hide">
+              {AVATAR_IDS.map((id) => {
+                const isSelected = avatarId === id;
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setAvatarId(id)}
+                    className={`aspect-square rounded-full p-0.5 border-[1.5px] transition-all duration-150 cursor-pointer ${
+                      isSelected ? 'border-amber bg-[#F5A6231A]' : 'border-border hover:border-amber/50'
+                    }`}
+                  >
+                    <img
+                      src={avatarUrl(id)}
+                      alt=""
+                      className="w-full h-full rounded-full object-cover"
+                    />
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           <Button variant="coral" onClick={handleJoin} className="mt-4">Join game →</Button>
           <Button variant="ghost" onClick={onBack}>Back to Home</Button>
         </div>

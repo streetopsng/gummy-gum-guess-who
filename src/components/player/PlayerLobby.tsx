@@ -3,6 +3,7 @@ import type { TeamMember } from '../../data';
 import type { PlayerState } from '../../hooks/useGameState';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
+import { avatarUrl } from '../../lib/avatars';
 
 interface PlayerLobbyProps {
   player?: TeamMember;
@@ -47,12 +48,16 @@ export const PlayerLobby: React.FC<PlayerLobbyProps> = ({ player, isHost, joined
         {player ? (
           <div className="mx-[22px] lg:mx-0 mb-4 bg-surface lg:bg-surface/60 lg:backdrop-blur-sm border-[1.5px] border-[#F5A6234D] rounded-[14px] p-3.5 lg:p-5 flex flex-col gap-3">
             <div className="flex items-center gap-3">
-              <div 
-                className="w-10 h-10 lg:w-12 lg:h-12 rounded-full flex items-center justify-center text-[14px] lg:text-[16px] font-extrabold text-[#1a0f00] shrink-0"
-                style={{ background: player.color }}
-              >
-                {getInitials(player.name)}
-              </div>
+              {player.avatarId ? (
+                <img src={avatarUrl(player.avatarId)} className="w-10 h-10 lg:w-12 lg:h-12 rounded-full object-cover shrink-0" />
+              ) : (
+                <div
+                  className="w-10 h-10 lg:w-12 lg:h-12 rounded-full flex items-center justify-center text-[14px] lg:text-[16px] font-extrabold text-[#1a0f00] shrink-0"
+                  style={{ background: player.color }}
+                >
+                  {getInitials(player.name)}
+                </div>
+              )}
               <div className="flex-1">
                 <div className="text-[14px] lg:text-[16px] font-bold">{player.nick}</div>
                 <div className="text-[11px] lg:text-[12px] text-amber">You {factsFilled ? '· Ready' : '· Filling Info'}</div>
@@ -119,12 +124,16 @@ export const PlayerLobby: React.FC<PlayerLobbyProps> = ({ player, isHost, joined
           <div className="px-[22px] lg:px-0 grid grid-cols-1 md:grid-cols-2 gap-2 lg:gap-3">
             {others.map((o) => (
               <div key={o.nick} className="flex items-center gap-2.5 py-2.5 lg:p-3 border-b lg:border border-border lg:bg-surface/40 lg:rounded-[12px] animate-row-in">
-                <div 
-                  className="w-8 h-8 lg:w-10 lg:h-10 rounded-full flex items-center justify-center text-[11px] lg:text-[13px] font-extrabold text-[#1a0f00] shrink-0"
-                  style={{ background: o.color }}
-                >
-                  {getInitials(o.name)}
-                </div>
+                {o.avatarId ? (
+                  <img src={avatarUrl(o.avatarId)} className="w-8 h-8 lg:w-10 lg:h-10 rounded-full object-cover shrink-0" />
+                ) : (
+                  <div
+                    className="w-8 h-8 lg:w-10 lg:h-10 rounded-full flex items-center justify-center text-[11px] lg:text-[13px] font-extrabold text-[#1a0f00] shrink-0"
+                    style={{ background: o.color }}
+                  >
+                    {getInitials(o.name)}
+                  </div>
+                )}
                 <div className="text-[13px] lg:text-[14px] font-semibold flex-1">{o.nick}</div>
                 <div className="w-[7px] h-[7px] rounded-full bg-green"></div>
               </div>

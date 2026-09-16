@@ -9,6 +9,7 @@ export interface PlayerState {
   color: string;
   facts: string[];
   imgSrc: string;
+  avatarId?: string;
   score: number;
   streak: number;
   maxStreak: number;
@@ -67,6 +68,7 @@ export function useGameState(gameCode?: string) {
         color: player.color,
         facts: player.facts,
         imgSrc: player.imgSrc || '',
+        avatarId: player.avatarId || '',
       });
       return;
     }
@@ -77,6 +79,7 @@ export function useGameState(gameCode?: string) {
       color: player.color,
       facts: player.facts,
       imgSrc: player.imgSrc || '',
+      avatarId: player.avatarId || '',
       ...(player.ggEmail && { ggEmail: player.ggEmail }),
       score: 0,
       streak: 0,
@@ -131,7 +134,8 @@ export function useGameState(gameCode?: string) {
           color: p.color,
           facts: p.facts,
           currentFact: f,
-          imgSrc: p.imgSrc
+          imgSrc: p.imgSrc,
+          avatarId: p.avatarId
         }));
       
       // Shuffle each player's facts
