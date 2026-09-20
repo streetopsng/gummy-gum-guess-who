@@ -27,6 +27,12 @@ export const EndScreen: React.FC<EndScreenProps> = ({
 }) => {
   const [confetti, setConfetti] = useState<{ id: number; left: number; color: string; delay: number; duration: number }[]>([]);
   const [showPhrase, setShowPhrase] = useState(false);
+  const [showThanksModal, setShowThanksModal] = useState(false);
+
+  const handleParticipantLeave = () => {
+    window.close();
+    setTimeout(() => setShowThanksModal(true), 400);
+  };
 
   useEffect(() => {
     const newConfetti = [];
@@ -226,7 +232,7 @@ export const EndScreen: React.FC<EndScreenProps> = ({
                   </>
                 ) : (
                   <button
-                    onClick={onHome}
+                    onClick={handleParticipantLeave}
                     className="px-6 py-3 bg-surface hover:bg-surface/80 border border-border text-white font-bold text-[14px] rounded-full transition-all cursor-pointer"
                   >
                     Leave Game
@@ -244,6 +250,15 @@ export const EndScreen: React.FC<EndScreenProps> = ({
           </div>
         )}
       </div>
+
+      {showThanksModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-5">
+          <div className="bg-surface border border-border rounded-[24px] p-7 max-w-sm w-full text-center">
+            <h3 className="font-extrabold text-[20px] text-white mb-2">Thanks for playing!</h3>
+            <p className="text-muted text-[14px]">You can close this tab now.</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
