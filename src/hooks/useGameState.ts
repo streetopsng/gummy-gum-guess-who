@@ -14,6 +14,7 @@ export interface PlayerState {
   streak: number;
   maxStreak: number;
   answers?: Record<number, boolean>;
+  ggEmail?: string;
 }
 
 export interface GameSession {
@@ -52,25 +53,34 @@ export function useGameState(gameCode?: string) {
     });
   };
 
-  const joinSession = async (code: string, player: TeamMember) => {
-    const playerRef = ref(database, `sessions/${code}/players/${player.nick}`);
-    const snapshot = await get(playerRef);
+  const joinSession = async (code: string, player: TeamMember): Promise<TeamMember> => {
+    const playersRef = ref(database, `sessions/${code}/players`);
+    const playersSnapshot = await get(playersRef);
+    const players: Record<string, PlayerState> = playersSnapshot.exists() ? playersSnapshot.val() : {};
 
-    if (snapshot.exists()) {
-      const existing = snapshot.val();
-      // A closed-tab rejoin reuses the same nick; only a mismatched identity is actually blocked.
-      const isSameIdentity = player.ggEmail && existing.ggEmail === player.ggEmail;
-      if (!isSameIdentity) {
-        throw new Error("This codename is already taken by someone else!");
-      }
-      await update(playerRef, {
-        name: player.name,
-        color: player.color,
-        facts: player.facts,
-        imgSrc: player.imgSrc || '',
-        avatarId: player.avatarId || '',
-      });
-      return;
+    // A rejoin (new tab/browser, no persisted auth) is only recognizable by
+    // the GummyGum-verified email — the nick is free text the guest can
+    // retype differently each time, so it can't be trusted as the identity.
+    const existingKey = player.ggEmail
+      ? Object.keys(players).find((key) => players[key].ggEmail === player.ggEmail)
+      : undefined;
+
+    if (existingKey) {
+      const existing = players[existingKey];
+      return {
+        name: existing.name,
+        nick: existing.nick,
+        color: existing.color,
+        facts: existing.facts,
+        imgSrc: existing.imgSrc,
+        avatarId: existing.avatarId,
+        ggEmail: player.ggEmail,
+      };
+    }
+
+    const playerRef = ref(database, `sessions/${code}/players/${player.nick}`);
+    if (players[player.nick]) {
+      throw new Error("This codename is already taken by someone else!");
     }
 
     await set(playerRef, {
@@ -86,6 +96,7 @@ export function useGameState(gameCode?: string) {
       maxStreak: 0,
       answers: {}
     });
+    return player;
   };
 
   const updatePlayerFacts = async (code: string, nick: string, facts: string[]) => {

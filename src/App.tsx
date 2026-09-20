@@ -151,8 +151,8 @@ function App() {
       throw new Error("Game session not found or already started.");
     }
     setGameCode(code);
-    setPlayer(p);
-    await joinSession(code, p);
+    const resolved = await joinSession(code, p);
+    setPlayer(resolved);
     setScreen('PLAYER_LOBBY');
   };
 
