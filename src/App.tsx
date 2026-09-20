@@ -9,7 +9,7 @@ import { RoundLeaderboard } from './components/game/RoundLeaderboard';
 import { EndScreen } from './components/game/EndScreen';
 import type { TeamMember, Opponent } from './data';
 import { useGameState, checkSessionExists } from './hooks/useGameState';
-import { resolveGummyGumLaunch, reportGummyGumResult } from './lib/gummygumSession';
+import { resolveGummyGumLaunch, reportGummyGumResult, returnToGummyGum } from './lib/gummygumSession';
 import type { GummyGumLaunchSession } from './lib/gummygumSession';
 
 import { BackgroundFx } from './components/ui/BackgroundFx';
@@ -55,6 +55,7 @@ function App() {
 
   const [ggAccessState, setGgAccessState] = useState<GummyGumAccessState>('checking');
   const [ggSession, setGgSession] = useState<GummyGumLaunchSession | null>(null);
+  const [showSessionCancelledModal, setShowSessionCancelledModal] = useState(false);
 
   useEffect(() => {
     resolveGummyGumLaunch()
@@ -129,6 +130,31 @@ function App() {
     }
   }, [session, screen, curQ, visualRound]);
 
+  // Detect the room/game document disappearing out from under an active
+  // session — GummyGum cancelling or ending the session on its side deletes
+  // the RTDB node, which this repo otherwise surfaces as a silent blank
+  // screen. Only GummyGum-launched sessions get special routing here; a
+  // standalone session with no ggSession keeps whatever (lack of) behavior
+  // already existed for a vanished room.
+  const hadSessionRef = useRef(false);
+  useEffect(() => {
+    if (session) {
+      hadSessionRef.current = true;
+      return;
+    }
+    if (!hadSessionRef.current || !ggSession) return;
+    hadSessionRef.current = false;
+
+    if (ggSession.isHost) {
+      // GummyGum is already the source of the cancellation — a plain
+      // redirect back to the hub, no need to re-hit the close endpoint.
+      returnToGummyGum();
+    } else {
+      window.close();
+      setTimeout(() => setShowSessionCancelledModal(true), 400);
+    }
+  }, [session, ggSession]);
+
   const handleHostLaunch = async (code: string) => {
     if (ggAccessState === 'denied') {
       setShowGateModal(true);
@@ -151,8 +177,8 @@ function App() {
       throw new Error("Game session not found or already started.");
     }
     setGameCode(code);
-    setPlayer(p);
-    await joinSession(code, p);
+    const resolved = await joinSession(code, p);
+    setPlayer(resolved);
     setScreen('PLAYER_LOBBY');
   };
 
@@ -297,6 +323,15 @@ function App() {
       <div className={`fixed bottom-8 left-1/2 -translate-x-1/2 bg-surface3 text-white text-[13px] font-semibold px-5 py-2.5 rounded-full z-[200] pointer-events-none transition-all duration-300 border border-border whitespace-nowrap ${toastMsg ? 'opacity-100 -translate-y-1' : 'opacity-0 translate-y-0'}`}>
         {toastMsg}
       </div>
+
+      {showSessionCancelledModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-5">
+          <div className="bg-surface border border-border rounded-[24px] p-7 max-w-sm w-full text-center">
+            <h3 className="font-extrabold text-[20px] text-white mb-2">Session Cancelled</h3>
+            <p className="text-muted text-[14px]">This session was cancelled by the host. You can close this tab now.</p>
+          </div>
+        </div>
+      )}
 
       <div className="w-full h-full lg:h-auto lg:w-[1024px] lg:max-h-[85vh] lg:rounded-[24px] lg:bg-surface/60 lg:backdrop-blur-xl lg:border lg:border-white/10 lg:shadow-2xl lg:overflow-hidden relative flex">
         <div className="w-full flex-1 relative max-w-[430px] mx-auto lg:max-w-none">
