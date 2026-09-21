@@ -27,6 +27,14 @@ function shuffle<T>(arr: T[]): T[] {
   return result;
 }
 
+function getInitialPlayer(): TeamMember | null {
+  try {
+    const raw = sessionStorage.getItem('guesswho_player');
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return null;
+}
+
 function App() {
   const [screen, setScreen] = useState<Screen>('MODE_SELECT');
   const [showGateModal, setShowGateModal] = useState(false);
@@ -39,7 +47,16 @@ function App() {
   const [isHost, setIsHost] = useState(false);
   const { session, createSession, joinSession, updatePlayerFacts, updatePlayerAnswer, startGame } = useGameState(gameCode || undefined);
   
-  const [player, setPlayer] = useState<TeamMember | null>(null);
+  const [player, setPlayerState] = useState<TeamMember | null>(getInitialPlayer);
+
+  const setPlayer = (p: TeamMember | null) => {
+    setPlayerState(p);
+    if (p) {
+      try { sessionStorage.setItem('guesswho_player', JSON.stringify(p)); } catch {}
+    } else {
+      sessionStorage.removeItem('guesswho_player');
+    }
+  };
 
   const showToast = (msg: string) => {
     setToastMsg(msg);
@@ -88,6 +105,13 @@ function App() {
         return;
       }
       setGameCode(code);
+      const savedCode = sessionStorage.getItem('guesswho_code');
+      const savedPlayer = getInitialPlayer();
+      if (savedPlayer && (savedCode === code || !savedCode)) {
+        setPlayer(savedPlayer);
+        setScreen('PLAYER_LOBBY');
+        return;
+      }
       setScreen('PLAYER_JOIN');
     })();
   }, [ggSession, screen, createSession, joinSession]);
@@ -109,9 +133,9 @@ function App() {
 
   useEffect(() => {
     if (session) {
-      if (session.status === 'playing' && screen === 'PLAYER_LOBBY') {
+      if (session.status === 'playing' && (screen === 'PLAYER_LOBBY' || (screen === 'PLAYER_JOIN' && getInitialPlayer()))) {
         setScreen('GAME');
-        setVisualRound(0);
+        setVisualRound(curQ);
       }
       if (session.status === 'playing' && screen === 'GAME' && curQ > visualRound) {
         setScreen('ROUND_REACTION');
@@ -177,6 +201,7 @@ function App() {
       throw new Error("Game session not found or already started.");
     }
     setGameCode(code);
+    try { sessionStorage.setItem('guesswho_code', code); } catch {}
     const resolved = await joinSession(code, p);
     setPlayer(resolved);
     setScreen('PLAYER_LOBBY');
