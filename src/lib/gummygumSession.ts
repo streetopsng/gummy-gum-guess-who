@@ -19,6 +19,7 @@ export interface GummyGumLaunchSession {
   reportToken: string;
   roomCode: string | null;
   isHost: boolean;
+  invitedCount?: number | null;
   hubUrl: string;
   round: number;
   reported: boolean;
@@ -34,6 +35,7 @@ interface VerifyLaunchResponse {
     reportToken: string;
     roomCode?: string | null;
     isHost?: boolean;
+    invitedCount?: number | null;
     hubUrl?: string;
   };
 }
@@ -93,6 +95,7 @@ export async function resolveGummyGumLaunch(): Promise<GummyGumLaunchSession | n
     reportToken: body.data.reportToken,
     roomCode: body.data.roomCode ?? null,
     isHost: Boolean(body.data.isHost),
+    invitedCount: body.data.invitedCount ?? null,
     hubUrl,
     round: 1,
     reported: false,
