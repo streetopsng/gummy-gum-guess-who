@@ -4,6 +4,7 @@ import type { PlayerState } from '../../hooks/useGameState';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { avatarUrl } from '../../lib/avatars';
+import { getGummyGumSession } from '../../lib/gummygumSession';
 
 interface PlayerLobbyProps {
   player?: TeamMember;
@@ -16,6 +17,10 @@ interface PlayerLobbyProps {
 export const PlayerLobby: React.FC<PlayerLobbyProps> = ({ player, isHost, joinedPlayers, onStart, onUpdateFacts }) => {
   const [localFacts, setLocalFacts] = useState<string[]>(['', '', '', '']);
   const getInitials = (name: string) => name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
+
+  const session = getGummyGumSession();
+  const queryInvited = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('invitedCount') : null;
+  const targetInvited = session?.invitedCount || (queryInvited ? parseInt(queryInvited, 10) : null);
 
   const myState = player ? joinedPlayers.find(p => p.nick === player.nick) : null;
   const factsFilled = myState?.facts && myState.facts.every(f => f.trim() !== '');
@@ -118,7 +123,7 @@ export const PlayerLobby: React.FC<PlayerLobbyProps> = ({ player, isHost, joined
       <div className="flex-1 flex flex-col lg:overflow-hidden relative min-h-0">
         <div className="flex-1 overflow-y-auto scrollbar-hide lg:p-8">
           <div className="px-[22px] pb-2 lg:px-0 lg:pb-5">
-            <div className="text-[10px] lg:text-[12px] tracking-[2.5px] uppercase text-muted font-semibold">Also in the lobby ({others.length})</div>
+            <div className="text-[10px] lg:text-[12px] tracking-[2.5px] uppercase text-muted font-semibold">In the lobby ({joinedPlayers.length}{targetInvited ? ` / ${targetInvited}` : ''})</div>
           </div>
           
           <div className="px-[22px] lg:px-0 grid grid-cols-1 md:grid-cols-2 gap-2 lg:gap-3">
