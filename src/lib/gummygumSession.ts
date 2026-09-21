@@ -73,6 +73,9 @@ export async function resolveGummyGumLaunch(): Promise<GummyGumLaunchSession | n
     return getGummyGumSession();
   }
 
+  sessionStorage.removeItem('guesswho_code');
+  sessionStorage.removeItem('guesswho_player');
+
   let body = await verifyLaunchTokenOnce(ggt);
   if (!body) {
     await new Promise((resolve) => setTimeout(resolve, 1500));
