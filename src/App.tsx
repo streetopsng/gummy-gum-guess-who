@@ -29,7 +29,7 @@ function shuffle<T>(arr: T[]): T[] {
 
 function getInitialPlayer(): TeamMember | null {
   try {
-    const raw = sessionStorage.getItem('guesswho_player');
+    const raw = sessionStorage.getItem('guesswho_player') || localStorage.getItem('guesswho_player');
     if (raw) return JSON.parse(raw);
   } catch {}
   return null;
@@ -52,9 +52,17 @@ function App() {
   const setPlayer = (p: TeamMember | null) => {
     setPlayerState(p);
     if (p) {
-      try { sessionStorage.setItem('guesswho_player', JSON.stringify(p)); } catch {}
+      try {
+        const serialized = JSON.stringify(p);
+        sessionStorage.setItem('guesswho_player', serialized);
+        localStorage.setItem('guesswho_player', serialized);
+        if (p.ggEmail) {
+          localStorage.setItem(`guesswho_player_${p.ggEmail.toLowerCase().trim()}`, serialized);
+        }
+      } catch {}
     } else {
       sessionStorage.removeItem('guesswho_player');
+      localStorage.removeItem('guesswho_player');
     }
   };
 
@@ -105,9 +113,16 @@ function App() {
         return;
       }
       setGameCode(code);
-      const savedCode = sessionStorage.getItem('guesswho_code');
-      const savedPlayer = getInitialPlayer();
-      if (savedPlayer && (savedCode === code || !savedCode)) {
+      const email = (ggSession.player?.email || '').toLowerCase().trim();
+      const savedCode = sessionStorage.getItem('guesswho_code') || localStorage.getItem('guesswho_code');
+      let savedPlayer = getInitialPlayer();
+      if (!savedPlayer && email) {
+        try {
+          const raw = localStorage.getItem(`guesswho_player_${email}`);
+          if (raw) savedPlayer = JSON.parse(raw);
+        } catch {}
+      }
+      if (savedPlayer && (savedCode === code || !savedCode || (email && localStorage.getItem(`guesswho_joined_${code}_${email}`) === 'true'))) {
         setPlayer(savedPlayer);
         setScreen('PLAYER_LOBBY');
         return;
@@ -201,7 +216,13 @@ function App() {
       throw new Error("Game session not found or already started.");
     }
     setGameCode(code);
-    try { sessionStorage.setItem('guesswho_code', code); } catch {}
+    try {
+      sessionStorage.setItem('guesswho_code', code);
+      localStorage.setItem('guesswho_code', code);
+      if (p.ggEmail) {
+        localStorage.setItem(`guesswho_joined_${code}_${p.ggEmail.toLowerCase().trim()}`, 'true');
+      }
+    } catch {}
     const resolved = await joinSession(code, p);
     setPlayer(resolved);
     setScreen('PLAYER_LOBBY');
