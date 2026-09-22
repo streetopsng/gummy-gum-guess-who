@@ -4,7 +4,7 @@ import type { PlayerState } from '../../hooks/useGameState';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { avatarUrl } from '../../lib/avatars';
-import { getGummyGumSession } from '../../lib/gummygumSession';
+import { getGummyGumSession, returnToGummyGum, closeGummyGumSession } from '../../lib/gummygumSession';
 
 interface PlayerLobbyProps {
   player?: TeamMember;
@@ -41,12 +41,22 @@ export const PlayerLobby: React.FC<PlayerLobbyProps> = ({ player, isHost, joined
       {/* Desktop Left Sidebar / Mobile Top Section */}
       <div className="lg:w-[360px] lg:border-r lg:border-border lg:bg-black/20 lg:p-8 lg:flex lg:flex-col shrink-0 lg:overflow-y-auto scrollbar-hide">
         <div className="px-[22px] pt-6 lg:px-0 lg:pt-0">
-          <div className="flex items-center gap-2.5 mb-4 lg:mb-8">
-            <div className="text-[32px] lg:text-[40px]">🕵️</div>
-            <div>
-              <div className="text-[20px] lg:text-[24px] font-black">Guess Who?</div>
-              <div className="text-[12px] lg:text-[13px] text-muted mt-[1px]">StreetOps</div>
+          <div className="flex items-center justify-between mb-4 lg:mb-8">
+            <div className="flex items-center gap-2.5">
+              <div className="text-[32px] lg:text-[40px]">🕵️</div>
+              <div>
+                <div className="text-[20px] lg:text-[24px] font-black">Guess Who?</div>
+                <div className="text-[12px] lg:text-[13px] text-muted mt-[1px]">StreetOps</div>
+              </div>
             </div>
+            <button
+              type="button"
+              onClick={() => isHost ? closeGummyGumSession() : returnToGummyGum()}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-bold text-white transition-colors cursor-pointer"
+              title="Back to GummyGum"
+            >
+              <span>← Back</span>
+            </button>
           </div>
         </div>
 
