@@ -198,5 +198,5 @@ export function useGameState(gameCode?: string) {
 export async function checkSessionExists(code: string): Promise<boolean> {
   const dbRef = ref(database);
   const snapshot = await get(child(dbRef, `sessions/${code}`));
-  return snapshot.exists() && snapshot.val().status === 'lobby';
+  return snapshot.exists() && snapshot.val()?.status !== 'ended';
 }
