@@ -42,7 +42,7 @@ interface VerifyLaunchResponse {
 
 export function getGummyGumSession(): GummyGumLaunchSession | null {
   if (typeof window === 'undefined') return null;
-  const stored = sessionStorage.getItem(STORAGE_KEY);
+  const stored = sessionStorage.getItem(STORAGE_KEY) || localStorage.getItem(STORAGE_KEY);
   if (!stored) return null;
   try {
     return JSON.parse(stored) as GummyGumLaunchSession;
@@ -75,15 +75,30 @@ export async function resolveGummyGumLaunch(): Promise<GummyGumLaunchSession | n
     return getGummyGumSession();
   }
 
-  sessionStorage.removeItem('guesswho_code');
-  sessionStorage.removeItem('guesswho_player');
-
   let body = await verifyLaunchTokenOnce(ggt);
   if (!body) {
     await new Promise((resolve) => setTimeout(resolve, 1500));
     body = await verifyLaunchTokenOnce(ggt);
   }
-  if (!body) return null;
+
+  if (!body) {
+    // If token verification fails (e.g. single-use token already consumed and page refreshed),
+    // fall back to existing active session if available
+    const existing = getGummyGumSession();
+    if (existing) {
+      params.delete('ggt');
+      const query = params.toString();
+      window.history.replaceState({}, '', window.location.pathname + (query ? `?${query}` : ''));
+      return existing;
+    }
+    return null;
+  }
+
+  const existing = getGummyGumSession();
+  if (!existing || existing.roomCode !== body.data.roomCode) {
+    sessionStorage.removeItem('guesswho_code');
+    sessionStorage.removeItem('guesswho_player');
+  }
 
   const hubUrl = body.data.hubUrl || (typeof document !== 'undefined' && document.referrer ? new URL(document.referrer).origin : 'https://gummygum.app');
 
@@ -101,6 +116,7 @@ export async function resolveGummyGumLaunch(): Promise<GummyGumLaunchSession | n
     reported: false,
   };
   sessionStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
 
   params.delete('ggt');
   const query = params.toString();
@@ -121,6 +137,7 @@ export async function reportGummyGumResult(report: Record<string, unknown>): Pro
     });
     session.reported = true;
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
   } catch (err) {
     console.error('GummyGum result report failed', err);
   }
@@ -151,6 +168,7 @@ export async function closeGummyGumSession(finalReport?: Record<string, unknown>
   } finally {
     const hub = session.hubUrl || 'https://gummygum.app';
     sessionStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(STORAGE_KEY);
     window.location.href = hub;
   }
 }
@@ -160,6 +178,7 @@ export function returnToGummyGum(): void {
   const session = getGummyGumSession();
   const hub = session?.hubUrl || 'https://gummygum.app';
   sessionStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem(STORAGE_KEY);
   window.location.href = hub;
 }
 
