@@ -4,6 +4,7 @@ import type { TeamMember } from '../../data';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { AVATAR_IDS, avatarUrl } from '../../lib/avatars';
+import { GameRulesModal } from '../GameRulesModal';
 
 interface PlayerJoinProps {
   onBack: () => void;
@@ -18,8 +19,9 @@ export const PlayerJoin: React.FC<PlayerJoinProps> = ({ onBack, onJoin, initialC
   const [nick, setNick] = useState(initialNick || '');
   const [avatarId, setAvatarId] = useState(AVATAR_IDS[0]);
   const [error, setError] = useState('');
+  const [showRules, setShowRules] = useState(false);
 
-  const handleJoin = async () => {
+  const handlePreJoin = () => {
     if (!code.trim() || !nick.trim()) {
       setError('Please fill in all fields.');
       return;
@@ -31,6 +33,11 @@ export const PlayerJoin: React.FC<PlayerJoinProps> = ({ onBack, onJoin, initialC
     }
 
     setError('');
+    setShowRules(true);
+  };
+
+  const handleJoin = async () => {
+    setShowRules(false);
     
     const randomColor = COLORS[Math.floor(Math.random() * COLORS.length)];
     const bgColors = ['#2a1a0a', '#0a1a2a', '#1a0a2a', '#0a2a1a', '#2a0a0a', '#2a1a0a', '#0a2a2a', '#2a0a1a'];
@@ -105,10 +112,17 @@ export const PlayerJoin: React.FC<PlayerJoinProps> = ({ onBack, onJoin, initialC
             </div>
           </div>
 
-          <Button variant="coral" onClick={handleJoin} className="mt-4">Join game →</Button>
+          <Button variant="coral" onClick={handlePreJoin} className="mt-4">Join game →</Button>
           <Button variant="ghost" onClick={onBack}>Back to Home</Button>
         </div>
       </div>
+
+      {showRules && (
+        <GameRulesModal
+          onConfirm={handleJoin}
+          name={nick.trim()}
+        />
+      )}
     </div>
   );
 };
