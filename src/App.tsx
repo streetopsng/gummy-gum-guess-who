@@ -405,6 +405,7 @@ function App() {
               initialCode={gameCode || undefined}
               initialNick={ggSession?.player?.name || undefined}
               ggEmail={ggSession?.player?.email || undefined}
+              ggSession={!!ggSession}
             />
           )}
 

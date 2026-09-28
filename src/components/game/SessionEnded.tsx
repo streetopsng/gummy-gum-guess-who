@@ -1,9 +1,11 @@
 import React from 'react';
 import { Button } from '../ui/Button';
 import { IconClose } from '../ui/Icons';
-import { returnToGummyGum } from '../../lib/gummygumSession';
+import { returnToGummyGum, getGummyGumSession } from '../../lib/gummygumSession';
 
 export const SessionEnded: React.FC = () => {
+  const isHost = !!getGummyGumSession()?.isHost;
+
   return (
     <div className="h-full w-full flex items-center justify-center p-6">
       <div className="bg-surface border border-border rounded-[24px] w-full max-w-[400px] mx-auto p-8 text-center">
@@ -12,9 +14,13 @@ export const SessionEnded: React.FC = () => {
         </div>
         <h1 className="text-white text-xl font-bold mb-3">Session Ended</h1>
         <p className="text-white/70 text-[15px] mb-6">
-          The host ended this session. You can return to GummyGum now.
+          {isHost
+            ? 'The host ended this session. You can return to GummyGum now.'
+            : 'The host ended this session. You can close this tab now.'}
         </p>
-        <Button variant="amber" onClick={() => returnToGummyGum()}>Return to GummyGum</Button>
+        {isHost && (
+          <Button variant="amber" onClick={() => returnToGummyGum()}>Return to GummyGum</Button>
+        )}
       </div>
     </div>
   );
