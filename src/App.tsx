@@ -7,6 +7,7 @@ import { GameScreen } from './components/game/GameScreen';
 import { RoundReaction } from './components/game/RoundReaction';
 import { RoundLeaderboard } from './components/game/RoundLeaderboard';
 import { EndScreen } from './components/game/EndScreen';
+import { SessionEnded } from './components/game/SessionEnded';
 import type { TeamMember, Opponent } from './data';
 import { useGameState, checkSessionExists } from './hooks/useGameState';
 import { resolveGummyGumLaunch, reportGummyGumResult, returnToGummyGum } from './lib/gummygumSession';
@@ -16,7 +17,7 @@ import { BackgroundFx } from './components/ui/BackgroundFx';
 import { Button } from './components/ui/Button';
 import { IconBurst, IconFlame, IconBolt } from './components/ui/Icons';
 
-type Screen = 'MODE_SELECT' | 'HOST_SETUP' | 'PLAYER_JOIN' | 'PLAYER_LOBBY' | 'GAME' | 'ROUND_REACTION' | 'ROUND_LEADERBOARD' | 'END';
+type Screen = 'MODE_SELECT' | 'HOST_SETUP' | 'PLAYER_JOIN' | 'PLAYER_LOBBY' | 'GAME' | 'ROUND_REACTION' | 'ROUND_LEADERBOARD' | 'END' | 'SESSION_ENDED';
 type GummyGumAccessState = 'checking' | 'granted' | 'denied';
 
 function shuffle<T>(arr: T[]): T[] {
@@ -81,7 +82,6 @@ function App() {
 
   const [ggAccessState, setGgAccessState] = useState<GummyGumAccessState>('checking');
   const [ggSession, setGgSession] = useState<GummyGumLaunchSession | null>(null);
-  const [showSessionCancelledModal, setShowSessionCancelledModal] = useState(false);
 
   useEffect(() => {
     resolveGummyGumLaunch()
@@ -190,8 +190,7 @@ function App() {
       // redirect back to the hub, no need to re-hit the close endpoint.
       returnToGummyGum();
     } else {
-      window.close();
-      setTimeout(() => setShowSessionCancelledModal(true), 400);
+      setScreen('SESSION_ENDED');
     }
   }, [session, ggSession]);
 
@@ -371,15 +370,6 @@ function App() {
         {toastMsg}
       </div>
 
-      {showSessionCancelledModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-5">
-          <div className="bg-surface border border-border rounded-[24px] p-7 max-w-sm w-full text-center">
-            <h3 className="font-extrabold text-[20px] text-white mb-2">Session Cancelled</h3>
-            <p className="text-muted text-[14px]">This session was cancelled by the host. You can close this tab now.</p>
-          </div>
-        </div>
-      )}
-
       <div className="w-full h-full lg:h-auto lg:w-[1024px] lg:max-h-[85vh] lg:rounded-[24px] lg:bg-surface/60 lg:backdrop-blur-xl lg:border lg:border-white/10 lg:overflow-hidden relative flex">
         <div className="w-full flex-1 relative max-w-[430px] mx-auto lg:max-w-none">
           {screen === 'MODE_SELECT' && (
@@ -474,6 +464,8 @@ function App() {
               isHost={isHost && !player}
             />
           )}
+
+          {screen === 'SESSION_ENDED' && <SessionEnded />}
 
           {screen === 'END' && (
             <EndScreen
