@@ -13,9 +13,10 @@ interface PlayerJoinProps {
   initialCode?: string;
   initialNick?: string;
   ggEmail?: string;
+  ggSession?: boolean;
 }
 
-export const PlayerJoin: React.FC<PlayerJoinProps> = ({ onBack, onJoin, initialCode, initialNick, ggEmail }) => {
+export const PlayerJoin: React.FC<PlayerJoinProps> = ({ onBack, onJoin, initialCode, initialNick, ggEmail, ggSession }) => {
   const [code, setCode] = useState(initialCode || '');
   const [nick, setNick] = useState(initialNick || '');
   const [avatarId, setAvatarId] = useState(AVATAR_IDS[0]);
@@ -68,16 +69,18 @@ export const PlayerJoin: React.FC<PlayerJoinProps> = ({ onBack, onJoin, initialC
       <div className="w-full max-w-[400px] mx-auto flex flex-col items-center my-auto pb-8">
         <div className="text-[26px] lg:text-[32px] font-black text-center mb-1.5 mt-4">Join the game</div>
         <div className="text-[13px] lg:text-[14px] text-muted text-center mb-7 leading-[1.5]">
-          Enter the code your host shared and tell us about yourself.
+          {ggSession ? 'Tell us about yourself.' : 'Enter the code your host shared and tell us about yourself.'}
         </div>
-        
+
         <div className="w-full flex flex-col gap-3">
-          <Input 
-            placeholder="Game code (e.g. GW-491)" 
-            maxLength={10} 
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-          />
+          {!ggSession && (
+            <Input
+              placeholder="Game code (e.g. GW-491)"
+              maxLength={10}
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+            />
+          )}
           <Input
             placeholder="Codename/Nickname (e.g. QuietStorm)"
             maxLength={20}
