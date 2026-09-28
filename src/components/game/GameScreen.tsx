@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import type { TeamMember, Opponent } from '../../data';
 import { avatarUrl } from '../../lib/avatars';
+import { IconFlame, IconCheck, IconClose } from '../ui/Icons';
 
 interface GameScreenProps {
   subject: any;
@@ -120,7 +121,9 @@ export const GameScreen: React.FC<GameScreenProps> = ({
           <div className="text-right">
             <div className="text-[22px] lg:text-[32px] font-black text-amber leading-none">{score}</div>
             {streak >= 2 && (
-              <div className="text-[11px] lg:text-[13px] text-coral mt-1">🔥 {streak} streak</div>
+              <div className="text-[11px] lg:text-[13px] text-coral mt-1 flex items-center justify-end gap-1">
+                <IconFlame className="w-3 h-3 lg:w-3.5 lg:h-3.5" /> {streak} streak
+              </div>
             )}
           </div>
         )}
@@ -131,7 +134,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({
         {/* Left/Top: Polaroid & Timer */}
         <div className="flex-none lg:flex-1 flex flex-col justify-center items-center px-5 pt-2 pb-2 lg:p-8 lg:border-r lg:border-border/50">
           <div
-            className={`w-[220px] lg:w-[280px] bg-cream rounded-sm p-5 lg:p-6 pb-12 lg:pb-16 shadow-[0_8px_40px_rgba(0,0,0,0.6),0_2px_8px_rgba(0,0,0,0.4)] relative transition-transform duration-150 flex items-center justify-center ${
+            className={`w-[220px] lg:w-[280px] bg-cream rounded-sm p-5 lg:p-6 pb-12 lg:pb-16 border border-black/10 shadow-[0_4px_16px_rgba(0,0,0,0.35)] relative transition-transform duration-150 flex items-center justify-center ${
               reveal && !isCorrect && !isFactOwner ? 'animate-shake' : ''
             } ${reveal && !isFactOwner ? 'animate-flip-reveal' : ''}`}
           >
@@ -154,16 +157,16 @@ export const GameScreen: React.FC<GameScreenProps> = ({
                     reveal && isCorrect ? 'animate-pop-in flex' : 'hidden'
                   }`}
                 >
-                  <div className="text-[52px] lg:text-[72px] leading-none">✓</div>
+                  <IconCheck className="w-12 h-12 lg:w-16 lg:h-16 text-[#166534]" strokeWidth={2.5} />
                   {answered && <div className="text-[12px] font-bold mt-2 animate-pulse bg-black/50 text-white px-3 py-1 rounded-full">Waiting for others...</div>}
                 </div>
-                
+
                 <div
                   className={`absolute inset-0 bg-[#EF444440] rounded-sm flex flex-col items-center justify-center ${
                     reveal && !isCorrect ? 'animate-pop-in flex' : 'hidden'
                   }`}
                 >
-                  <div className="text-[52px] lg:text-[72px] leading-none">✗</div>
+                  <IconClose className="w-12 h-12 lg:w-16 lg:h-16 text-[#991b1b]" strokeWidth={2.5} />
                   {answered && <div className="text-[12px] font-bold mt-2 animate-pulse bg-black/50 text-white px-3 py-1 rounded-full">Waiting for others...</div>}
                 </div>
               </>
@@ -205,7 +208,11 @@ export const GameScreen: React.FC<GameScreenProps> = ({
                     <div className="text-[11px] font-bold leading-none mb-0.5" style={{ color: p.color }}>{p.nick}</div>
                     <div className="flex items-center gap-1.5">
                       <span className="text-[10px] font-bold text-amber">{Math.round(p.score)}</span>
-                      {p.streak >= 2 && <span className="text-[9px] text-coral">🔥{p.streak}</span>}
+                      {p.streak >= 2 && (
+                        <span className="text-[9px] text-coral flex items-center gap-0.5">
+                          <IconFlame className="w-2.5 h-2.5" />{p.streak}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>

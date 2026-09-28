@@ -1,5 +1,6 @@
 import React from 'react';
 import { Button } from './ui/Button';
+import { IconChevronRight, IconLightbulb } from './ui/Icons';
 
 interface GameRulesModalProps {
   onConfirm: () => void;
@@ -9,7 +10,7 @@ interface GameRulesModalProps {
 export const GameRulesModal: React.FC<GameRulesModalProps> = ({ onConfirm, name }) => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm select-none animate-fade-in">
-      <div className="bg-[#181C24] border-2 border-white/10 rounded-[24px] p-6 sm:p-8 max-w-md w-full shadow-[0_25px_60px_rgba(0,0,0,0.7)] flex flex-col max-h-[90vh] overflow-y-auto text-white">
+      <div className="bg-[#181C24] border border-white/10 rounded-[24px] p-6 sm:p-8 max-w-md w-full flex flex-col max-h-[90vh] overflow-y-auto text-white">
         <div className="text-center mb-5">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#F5A623]/20 border border-[#F5A623]/40 text-[#F5A623] text-[11px] font-extrabold uppercase tracking-wider mb-2">
             Game Overview
@@ -63,7 +64,7 @@ export const GameRulesModal: React.FC<GameRulesModalProps> = ({ onConfirm, name 
 
         {/* Tip Box */}
         <div className="p-3 bg-[#F5A623]/10 border border-[#F5A623]/25 rounded-xl text-left flex items-center gap-2.5 mb-6">
-          <span className="text-base shrink-0">💡</span>
+          <IconLightbulb className="w-4 h-4 text-[#F5A623] shrink-0" />
           <span className="text-[11.5px] text-[#F5A623] font-medium leading-snug">
             <strong>Pro tip:</strong> Pick surprising facts that aren't mentioned in your standard work profile!
           </span>
@@ -73,9 +74,9 @@ export const GameRulesModal: React.FC<GameRulesModalProps> = ({ onConfirm, name 
         <Button
           variant="amber"
           onClick={onConfirm}
-          className="w-full py-3.5 text-sm sm:text-base font-bold rounded-xl cursor-pointer"
+          className="w-full py-3.5 text-sm sm:text-base font-bold rounded-xl cursor-pointer flex items-center justify-center gap-1.5"
         >
-          Got it, enter lobby →
+          Got it, enter lobby <IconChevronRight className="w-4 h-4" />
         </Button>
       </div>
     </div>

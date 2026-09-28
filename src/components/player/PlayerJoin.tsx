@@ -5,6 +5,7 @@ import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { AVATAR_IDS, avatarUrl } from '../../lib/avatars';
 import { GameRulesModal } from '../GameRulesModal';
+import { IconChevronRight } from '../ui/Icons';
 
 interface PlayerJoinProps {
   onBack: () => void;
@@ -112,7 +113,7 @@ export const PlayerJoin: React.FC<PlayerJoinProps> = ({ onBack, onJoin, initialC
             </div>
           </div>
 
-          <Button variant="coral" onClick={handlePreJoin} className="mt-4">Join game →</Button>
+          <Button variant="coral" onClick={handlePreJoin} className="mt-4 flex items-center justify-center gap-1.5">Join game <IconChevronRight className="w-4 h-4" /></Button>
           <Button variant="ghost" onClick={onBack}>Back to Home</Button>
         </div>
       </div>

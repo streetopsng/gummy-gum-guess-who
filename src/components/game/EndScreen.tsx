@@ -3,6 +3,7 @@ import type { Opponent } from '../../data';
 import { COLORS } from '../../data';
 import { closeGummyGumSession, getGummyGumSession } from '../../lib/gummygumSession';
 import { avatarUrl } from '../../lib/avatars';
+import { IconFlame, IconSmile, IconShock, IconClap, IconCrown } from '../ui/Icons';
 
 interface EndScreenProps {
   playerScore: number;
@@ -112,8 +113,8 @@ export const EndScreen: React.FC<EndScreenProps> = ({
                 )}
               </div>
               <div className="text-[11px] lg:text-[14px] font-bold text-center max-w-[76px] lg:max-w-[100px] truncate w-full">{all[1].nick}</div>
-              <div className="w-[76px] lg:w-[100px] rounded-t-md flex items-center justify-center text-[16px] lg:text-[24px] font-extrabold h-[60px] lg:h-[100px] bg-[#9ca3af] text-[#1a1a1a]">
-                🥈
+              <div className="w-[76px] lg:w-[100px] rounded-t-md flex items-center justify-center text-[18px] lg:text-[28px] font-black h-[60px] lg:h-[100px] bg-[#9ca3af] text-[#1a1a1a]">
+                2
               </div>
             </div>
           )}
@@ -133,8 +134,8 @@ export const EndScreen: React.FC<EndScreenProps> = ({
                 )}
               </div>
               <div className="text-[11px] lg:text-[16px] font-bold text-center max-w-[76px] lg:max-w-[120px] truncate w-full">{all[0].nick}</div>
-              <div className="w-[76px] lg:w-[120px] rounded-t-md flex items-center justify-center text-[16px] lg:text-[32px] font-extrabold h-[80px] lg:h-[140px] bg-amber text-[#1a0f00]">
-                🥇
+              <div className="w-[76px] lg:w-[120px] rounded-t-md flex items-center justify-center text-[20px] lg:text-[36px] font-black h-[80px] lg:h-[140px] bg-amber text-[#1a0f00]">
+                1
               </div>
             </div>
           )}
@@ -154,19 +155,19 @@ export const EndScreen: React.FC<EndScreenProps> = ({
                 )}
               </div>
               <div className="text-[11px] lg:text-[14px] font-bold text-center max-w-[76px] lg:max-w-[100px] truncate w-full">{all[2].nick}</div>
-              <div className="w-[76px] lg:w-[100px] rounded-t-md flex items-center justify-center text-[16px] lg:text-[24px] font-extrabold h-[44px] lg:h-[70px] bg-[#b87333] text-[#1a1a1a]">
-                🥉
+              <div className="w-[76px] lg:w-[100px] rounded-t-md flex items-center justify-center text-[18px] lg:text-[28px] font-black h-[44px] lg:h-[70px] bg-[#b87333] text-[#1a1a1a]">
+                3
               </div>
             </div>
           )}
         </div>
 
         <div
-          className={`mx-5 mt-6 lg:mt-10 text-[18px] lg:text-[28px] font-black text-center text-coral italic transition-all duration-600 z-10 ${
+          className={`mx-5 mt-6 lg:mt-10 text-[18px] lg:text-[28px] font-black text-center text-coral italic transition-all duration-600 z-10 flex items-center justify-center gap-2 ${
             showPhrase ? 'opacity-100 scale-100' : 'opacity-0 scale-90'
           }`}
         >
-          {all[0]?.nick} dominated. 🔥
+          {all[0]?.nick} dominated. <IconFlame className="w-5 h-5 lg:w-7 lg:h-7 not-italic shrink-0" />
         </div>
       </div>
 
@@ -190,7 +191,9 @@ export const EndScreen: React.FC<EndScreenProps> = ({
                 <div className="flex-1">
                   <div className="font-semibold">{p.nick}</div>
                   {p.maxStreak > 1 && (
-                    <div className="text-[10px] lg:text-[11px] text-coral mt-0.5">🔥 Longest streak: {p.maxStreak}</div>
+                    <div className="text-[10px] lg:text-[11px] text-coral mt-0.5 flex items-center gap-1">
+                      <IconFlame className="w-2.5 h-2.5" /> Longest streak: {p.maxStreak}
+                    </div>
                   )}
                 </div>
                 <div className="font-extrabold text-amber text-[14px] lg:text-[18px]">{Math.round(p.score)}</div>
@@ -200,13 +203,13 @@ export const EndScreen: React.FC<EndScreenProps> = ({
         </div>
 
         <div className="flex gap-2.5 lg:gap-4 justify-center px-5 py-3.5 pb-8 lg:p-0 lg:mt-8 w-full shrink-0">
-          {['🔥', '😂', '😱', '👏', '👑'].map((emoji, i) => (
+          {[IconFlame, IconSmile, IconShock, IconClap, IconCrown].map((RxnIcon, i) => (
             <div
               key={i}
-              className="text-[22px] lg:text-[28px] bg-surface lg:bg-surface/60 lg:backdrop-blur-sm border border-border rounded-full w-[46px] h-[46px] lg:w-[60px] lg:h-[60px] flex items-center justify-center cursor-pointer transition-transform duration-200 hover:scale-110 hover:border-amber/50 active:scale-90"
+              className="text-amber bg-surface lg:bg-surface/60 lg:backdrop-blur-sm border border-border rounded-full w-[46px] h-[46px] lg:w-[60px] lg:h-[60px] flex items-center justify-center cursor-pointer transition-transform duration-200 hover:scale-110 hover:border-amber/50 active:scale-90"
               onClick={handleRxn}
             >
-              {emoji}
+              <RxnIcon className="w-5 h-5 lg:w-6 lg:h-6" />
             </div>
           ))}
         </div>
@@ -219,7 +222,7 @@ export const EndScreen: React.FC<EndScreenProps> = ({
                   <>
                     <button
                       onClick={() => closeGummyGumSession()}
-                      className="px-6 py-3 bg-amber hover:bg-amber/90 text-black font-extrabold text-[14px] rounded-full transition-all cursor-pointer shadow-md"
+                      className="px-6 py-3 bg-amber hover:bg-amber/90 text-black font-extrabold text-[14px] rounded-full transition-colors cursor-pointer"
                     >
                       Close Session & Return to GummyGum
                     </button>

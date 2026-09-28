@@ -1,6 +1,7 @@
 import React from 'react';
 import type { Opponent } from '../../data';
 import { avatarUrl } from '../../lib/avatars';
+import { IconFlame } from '../ui/Icons';
 
 interface RoundLeaderboardProps {
   round: number;
@@ -58,7 +59,11 @@ export const RoundLeaderboard: React.FC<RoundLeaderboardProps> = ({
               )}
               <div className="flex-1 ml-2">
                 <div className="font-bold text-[18px]">{p.nick} {p.nick === playerNick && <span className="text-[12px] text-amber ml-2">(You)</span>}</div>
-                {p.streak >= 2 && <div className="text-[12px] text-coral mt-0.5">🔥 {p.streak} streak</div>}
+                {p.streak >= 2 && (
+                  <div className="text-[12px] text-coral mt-0.5 flex items-center gap-1">
+                    <IconFlame className="w-3 h-3" /> {p.streak} streak
+                  </div>
+                )}
               </div>
               <div className="text-[24px] font-black text-amber">{p.score}</div>
             </div>

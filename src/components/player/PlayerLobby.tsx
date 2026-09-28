@@ -5,6 +5,7 @@ import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { avatarUrl } from '../../lib/avatars';
 import { getGummyGumSession, returnToGummyGum, closeGummyGumSession } from '../../lib/gummygumSession';
+import { IconChevronLeft, IconChevronRight, IconCheck, IconSearch } from '../ui/Icons';
 
 interface PlayerLobbyProps {
   player?: TeamMember;
@@ -43,7 +44,9 @@ export const PlayerLobby: React.FC<PlayerLobbyProps> = ({ player, isHost, joined
         <div className="px-[22px] pt-6 lg:px-0 lg:pt-0">
           <div className="flex items-center justify-between mb-4 lg:mb-8">
             <div className="flex items-center gap-2.5">
-              <div className="text-[32px] lg:text-[40px]">🕵️</div>
+              <div className="w-9 h-9 lg:w-11 lg:h-11 rounded-[10px] border border-border bg-black/20 text-amber flex items-center justify-center shrink-0">
+                <IconSearch className="w-5 h-5 lg:w-6 lg:h-6" />
+              </div>
               <div>
                 <div className="text-[20px] lg:text-[24px] font-black">Guess Who?</div>
                 <div className="text-[12px] lg:text-[13px] text-muted mt-[1px]">StreetOps</div>
@@ -55,7 +58,8 @@ export const PlayerLobby: React.FC<PlayerLobbyProps> = ({ player, isHost, joined
               className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-bold text-white transition-colors cursor-pointer"
               title="Back to GummyGum"
             >
-              <span>← Back</span>
+              <IconChevronLeft className="w-3.5 h-3.5" />
+              <span>Back</span>
             </button>
           </div>
         </div>
@@ -77,7 +81,11 @@ export const PlayerLobby: React.FC<PlayerLobbyProps> = ({ player, isHost, joined
                 <div className="text-[14px] lg:text-[16px] font-bold">{player.nick}</div>
                 <div className="text-[11px] lg:text-[12px] text-amber">You {factsFilled ? '· Ready' : '· Filling Info'}</div>
               </div>
-              {factsFilled && <Badge variant="green">✓ Joined</Badge>}
+              {factsFilled && (
+                <Badge variant="green" className="flex items-center gap-1">
+                  <IconCheck className="w-3 h-3" /> Joined
+                </Badge>
+              )}
             </div>
 
             {!factsFilled && (
@@ -109,16 +117,16 @@ export const PlayerLobby: React.FC<PlayerLobbyProps> = ({ player, isHost, joined
             )}
           </div>
         ) : (
-          <div className="mx-[22px] lg:mx-0 mb-4 bg-gradient-to-br from-coral to-[#ff8c6b] rounded-[14px] p-5 text-center shadow-xl shadow-coral/20">
-            <div className="text-[11px] tracking-[2px] uppercase text-white/70 font-semibold mb-2">Host Dashboard</div>
-            <div className="text-[12px] text-white/80 leading-[1.4]">Waiting for players to join...</div>
+          <div className="mx-[22px] lg:mx-0 mb-4 bg-surface border-[1.5px] border-coral/40 rounded-[14px] p-5 text-center">
+            <div className="text-[11px] tracking-[2px] uppercase text-coral font-semibold mb-2">Host Dashboard</div>
+            <div className="text-[12px] text-muted leading-[1.4]">Waiting for players to join...</div>
           </div>
         )}
 
         <div className="mt-auto hidden lg:block">
           {isHost ? (
             <div className="flex flex-col gap-2">
-              <Button variant="coral" onClick={onStart} className="w-full" disabled={!canStart}>Start Game Now →</Button>
+              <Button variant="coral" onClick={onStart} className="w-full flex items-center justify-center gap-1.5" disabled={!canStart}>Start Game Now <IconChevronRight className="w-4 h-4" /></Button>
               {!canStart && <div className="text-[11px] text-muted text-center italic">Requires at least 5 players to start</div>}
             </div>
           ) : (
@@ -166,7 +174,7 @@ export const PlayerLobby: React.FC<PlayerLobbyProps> = ({ player, isHost, joined
         <div className="p-4 px-[22px] pb-9 shrink-0 lg:hidden">
           {isHost ? (
             <div className="flex flex-col gap-2">
-              <Button variant="coral" onClick={onStart} disabled={!canStart}>Start Game Now →</Button>
+              <Button variant="coral" onClick={onStart} className="flex items-center justify-center gap-1.5" disabled={!canStart}>Start Game Now <IconChevronRight className="w-4 h-4" /></Button>
               {!canStart && <div className="text-[11px] text-muted text-center italic">Requires at least 5 players to start</div>}
             </div>
           ) : (
