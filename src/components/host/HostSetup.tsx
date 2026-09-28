@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '../ui/Button';
+import { IconChevronRight } from '../ui/Icons';
 
 interface HostSetupProps {
   onBack: () => void;
@@ -23,8 +24,8 @@ export const HostSetup: React.FC<HostSetupProps> = ({ onBack, onLaunch }) => {
         </div>
 
         <div className="w-full flex flex-col gap-3">
-          <Button variant="coral" onClick={() => onLaunch(gameCode)}>
-            Create Game Room →
+          <Button variant="coral" onClick={() => onLaunch(gameCode)} className="flex items-center justify-center gap-1.5">
+            Create Game Room <IconChevronRight className="w-4 h-4" />
           </Button>
           <Button variant="ghost" onClick={onBack} className="mt-4 opacity-70">
             Cancel

@@ -14,6 +14,7 @@ import type { GummyGumLaunchSession } from './lib/gummygumSession';
 
 import { BackgroundFx } from './components/ui/BackgroundFx';
 import { Button } from './components/ui/Button';
+import { IconBurst, IconFlame, IconBolt } from './components/ui/Icons';
 
 type Screen = 'MODE_SELECT' | 'HOST_SETUP' | 'PLAYER_JOIN' | 'PLAYER_LOBBY' | 'GAME' | 'ROUND_REACTION' | 'ROUND_LEADERBOARD' | 'END';
 type GummyGumAccessState = 'checking' | 'granted' | 'denied';
@@ -38,7 +39,7 @@ function getInitialPlayer(): TeamMember | null {
 function App() {
   const [screen, setScreen] = useState<Screen>('MODE_SELECT');
   const [showGateModal, setShowGateModal] = useState(false);
-  const [toastMsg, setToastMsg] = useState('');
+  const [toastMsg, setToastMsg] = useState<React.ReactNode>(null);
   const [flashColor, setFlashColor] = useState<'green' | 'red' | null>(null);
 
   // Global State removed since HR Setup is skipped
@@ -66,9 +67,9 @@ function App() {
     }
   };
 
-  const showToast = (msg: string) => {
+  const showToast = (msg: React.ReactNode) => {
     setToastMsg(msg);
-    setTimeout(() => setToastMsg(''), 2400);
+    setTimeout(() => setToastMsg(null), 2400);
   };
 
   const flash = (color: 'green' | 'red') => {
@@ -243,9 +244,9 @@ function App() {
     let newMaxStreak = Math.max(myState?.maxStreak || 0, newStreak);
     
     if (correct) {
-      if (newStreak >= 5) showToast('💥 UNSTOPPABLE!');
-      else if (newStreak >= 3) showToast('🔥 ON FIRE!');
-      else if (newStreak >= 2) showToast('⚡ Streak!');
+      if (newStreak >= 5) showToast(<><IconBurst className="w-4 h-4" /> UNSTOPPABLE!</>);
+      else if (newStreak >= 3) showToast(<><IconFlame className="w-4 h-4" /> ON FIRE!</>);
+      else if (newStreak >= 2) showToast(<><IconBolt className="w-4 h-4" /> Streak!</>);
       flash('green');
     } else {
       flash('red');
@@ -366,7 +367,7 @@ function App() {
       <BackgroundFx />
       <div className={`fixed inset-0 pointer-events-none z-[99] transition-opacity duration-150 ${flashColor === 'green' ? 'bg-[#22C55E33] opacity-100' : flashColor === 'red' ? 'bg-[#EF44442E] opacity-100' : 'opacity-0'}`}></div>
       
-      <div className={`fixed bottom-8 left-1/2 -translate-x-1/2 bg-surface3 text-white text-[13px] font-semibold px-5 py-2.5 rounded-full z-[200] pointer-events-none transition-all duration-300 border border-border whitespace-nowrap ${toastMsg ? 'opacity-100 -translate-y-1' : 'opacity-0 translate-y-0'}`}>
+      <div className={`fixed bottom-8 left-1/2 -translate-x-1/2 bg-surface3 text-white text-[13px] font-semibold px-5 py-2.5 rounded-full z-[200] pointer-events-none transition-all duration-300 border border-border whitespace-nowrap flex items-center gap-2 ${toastMsg ? 'opacity-100 -translate-y-1' : 'opacity-0 translate-y-0'}`}>
         {toastMsg}
       </div>
 
@@ -379,7 +380,7 @@ function App() {
         </div>
       )}
 
-      <div className="w-full h-full lg:h-auto lg:w-[1024px] lg:max-h-[85vh] lg:rounded-[24px] lg:bg-surface/60 lg:backdrop-blur-xl lg:border lg:border-white/10 lg:shadow-2xl lg:overflow-hidden relative flex">
+      <div className="w-full h-full lg:h-auto lg:w-[1024px] lg:max-h-[85vh] lg:rounded-[24px] lg:bg-surface/60 lg:backdrop-blur-xl lg:border lg:border-white/10 lg:overflow-hidden relative flex">
         <div className="w-full flex-1 relative max-w-[430px] mx-auto lg:max-w-none">
           {screen === 'MODE_SELECT' && (
             <ModeSelect onSelect={(m) => setScreen(m === 'hr' ? 'HOST_SETUP' : 'PLAYER_JOIN')} />
