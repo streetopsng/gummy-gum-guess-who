@@ -89,14 +89,22 @@ export function useGameState(gameCode?: string) {
       };
     }
 
-    const playerRef = ref(database, `sessions/${code}/players/${player.nick}`);
-    if (players[player.nick]) {
-      throw new Error("This codename is already taken by someone else!");
+    let nick = player.nick;
+    if (players[nick]) {
+      if (!player.ggEmail) {
+        throw new Error("This codename is already taken by someone else!");
+      }
+      // Invite names are read-only, so a duplicate gets a suffix instead of a dead-end error.
+      let n = 2;
+      while (players[`${player.nick} ${n}`]) n++;
+      nick = `${player.nick} ${n}`;
     }
+    const joined: TeamMember = nick === player.nick ? player : { ...player, name: nick, nick };
+    const playerRef = ref(database, `sessions/${code}/players/${nick}`);
 
     await set(playerRef, {
-      name: player.name,
-      nick: player.nick,
+      name: joined.name,
+      nick,
       color: player.color,
       facts: player.facts,
       imgSrc: player.imgSrc || '',
@@ -107,7 +115,7 @@ export function useGameState(gameCode?: string) {
       maxStreak: 0,
       answers: {}
     });
-    return player;
+    return joined;
   };
 
   const updatePlayerFacts = async (code: string, nick: string, facts: string[]) => {
