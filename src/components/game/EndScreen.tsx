@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import type { Opponent } from '../../data';
 import { COLORS } from '../../data';
-import { closeGummyGumSession, getGummyGumSession } from '../../lib/gummygumSession';
+import { getGummyGumSession } from '../../lib/gummygumSession';
 import { avatarUrl } from '../../lib/avatars';
 import { IconFlame, IconSmile, IconShock, IconClap, IconCrown } from '../ui/Icons';
 
@@ -14,6 +14,7 @@ interface EndScreenProps {
   opponents: Opponent[];
   onHome?: () => void;
   showGummyGumExit?: boolean;
+  onEndSession?: () => void;
 }
 
 export const EndScreen: React.FC<EndScreenProps> = ({
@@ -25,6 +26,7 @@ export const EndScreen: React.FC<EndScreenProps> = ({
   opponents,
   onHome,
   showGummyGumExit,
+  onEndSession,
 }) => {
   const [confetti, setConfetti] = useState<{ id: number; left: number; color: string; delay: number; duration: number }[]>([]);
   const [showPhrase, setShowPhrase] = useState(false);
@@ -219,20 +221,12 @@ export const EndScreen: React.FC<EndScreenProps> = ({
             {showGummyGumExit ? (
               <div className="flex flex-col sm:flex-row gap-2.5 w-full justify-center items-center">
                 {getGummyGumSession()?.isHost ? (
-                  <>
-                    <button
-                      onClick={() => closeGummyGumSession()}
-                      className="px-6 py-3 bg-amber hover:bg-amber/90 text-black font-extrabold text-[14px] rounded-full transition-colors cursor-pointer"
-                    >
-                      Close Session & Return to GummyGum
-                    </button>
-                    <button
-                      onClick={onHome}
-                      className="px-5 py-3 bg-surface/50 hover:bg-surface/80 border border-border rounded-full text-[13px] font-medium text-muted transition-colors cursor-pointer"
-                    >
-                      Homepage
-                    </button>
-                  </>
+                  <button
+                    onClick={onEndSession}
+                    className="px-6 py-3 bg-amber hover:bg-amber/90 text-black font-extrabold text-[14px] rounded-full transition-colors cursor-pointer"
+                  >
+                    End session
+                  </button>
                 ) : (
                   <button
                     onClick={handleParticipantLeave}

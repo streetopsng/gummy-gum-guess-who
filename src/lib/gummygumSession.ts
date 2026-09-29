@@ -2,7 +2,7 @@
 // load and reporting this experience's outcome back to the hub when the
 // launching player (the host) finishes their game.
 
-const API_URL = import.meta.env.VITE_GUMMYGUM_API_URL || 'http://localhost:8000';
+const API_URL = import.meta.env.VITE_GUMMYGUM_API_URL || (import.meta.env.DEV ? 'http://localhost:8000' : 'https://paige-server.onrender.com');
 const STORAGE_KEY = 'gummygum_launch_session';
 
 export interface GummyGumPlayer {
@@ -20,6 +20,7 @@ export interface GummyGumLaunchSession {
   roomCode: string | null;
   isHost: boolean;
   invitedCount?: number | null;
+  hostedSessionId?: string | null;
   hubUrl: string;
   round: number;
   reported: boolean;
@@ -94,8 +95,9 @@ export async function resolveGummyGumLaunch(): Promise<GummyGumLaunchSession | n
     return null;
   }
 
+  const hostedSessionId = params.get('sessionId') || null;
   const existing = getGummyGumSession();
-  if (!existing || existing.roomCode !== body.data.roomCode) {
+  if (!existing || existing.roomCode !== body.data.roomCode || (existing.hostedSessionId || null) !== hostedSessionId) {
     sessionStorage.removeItem('guesswho_code');
     sessionStorage.removeItem('guesswho_player');
   }
@@ -111,6 +113,7 @@ export async function resolveGummyGumLaunch(): Promise<GummyGumLaunchSession | n
     roomCode: body.data.roomCode ?? null,
     isHost: Boolean(body.data.isHost),
     invitedCount: body.data.invitedCount ?? null,
+    hostedSessionId,
     hubUrl,
     round: 1,
     reported: false,
@@ -132,6 +135,7 @@ export async function reportGummyGumResult(report: Record<string, unknown>): Pro
   try {
     await fetch(`${API_URL}/api/gummygum/launch/report`, {
       method: 'POST',
+      keepalive: true,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ reportToken: session.reportToken, report }),
     });
@@ -140,6 +144,23 @@ export async function reportGummyGumResult(report: Record<string, unknown>): Pro
     localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
   } catch (err) {
     console.error('GummyGum result report failed', err);
+  }
+}
+
+// Host-only: ends the hosted session hub-side when the game did not complete.
+export async function reportGummyGumCancel(): Promise<void> {
+  const session = getGummyGumSession();
+  if (!session || !session.isHost || !session.reportToken) return;
+
+  try {
+    await fetch(`${API_URL}/api/gummygum/launch/cancel`, {
+      method: 'POST',
+      keepalive: true,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reportToken: session.reportToken }),
+    });
+  } catch (err) {
+    console.error('GummyGum cancel failed', err);
   }
 }
 

@@ -4,7 +4,8 @@ import type { PlayerState } from '../../hooks/useGameState';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { avatarUrl } from '../../lib/avatars';
-import { getGummyGumSession, returnToGummyGum, closeGummyGumSession } from '../../lib/gummygumSession';
+import { getGummyGumSession, returnToGummyGum } from '../../lib/gummygumSession';
+import { EndSessionButton } from '../host/EndSession';
 import { IconChevronLeft, IconChevronRight, IconCheck, IconSearch } from '../ui/Icons';
 
 interface PlayerLobbyProps {
@@ -13,9 +14,10 @@ interface PlayerLobbyProps {
   joinedPlayers: PlayerState[];
   onStart: () => void;
   onUpdateFacts: (facts: string[]) => void;
+  onEndSession?: () => void;
 }
 
-export const PlayerLobby: React.FC<PlayerLobbyProps> = ({ player, isHost, joinedPlayers, onStart, onUpdateFacts }) => {
+export const PlayerLobby: React.FC<PlayerLobbyProps> = ({ player, isHost, joinedPlayers, onStart, onUpdateFacts, onEndSession }) => {
   const [localFacts, setLocalFacts] = useState<string[]>(['', '', '', '']);
   const getInitials = (name: string) => name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
 
@@ -35,6 +37,8 @@ export const PlayerLobby: React.FC<PlayerLobbyProps> = ({ player, isHost, joined
   };
 
   const others = joinedPlayers.filter(p => p.nick !== player?.nick);
+  const hasSubmitted = (p: PlayerState) => Array.isArray(p.facts) && p.facts.length > 0 && p.facts.every(f => f.trim() !== '');
+  const submittedCount = joinedPlayers.filter(hasSubmitted).length;
 
   return (
     <div className="flex flex-col h-full lg:h-full w-full lg:flex-row relative overflow-y-auto lg:overflow-hidden scrollbar-hide">
@@ -52,15 +56,19 @@ export const PlayerLobby: React.FC<PlayerLobbyProps> = ({ player, isHost, joined
                 <div className="text-[12px] lg:text-[13px] text-muted mt-[1px]">StreetOps</div>
               </div>
             </div>
+            {isHost && onEndSession ? (
+              <EndSessionButton onClick={onEndSession} />
+            ) : (
             <button
               type="button"
-              onClick={() => isHost ? closeGummyGumSession() : returnToGummyGum()}
+              onClick={() => returnToGummyGum()}
               className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-bold text-white transition-colors cursor-pointer"
               title="Back to GummyGum"
             >
               <IconChevronLeft className="w-3.5 h-3.5" />
               <span>Back</span>
             </button>
+            )}
           </div>
         </div>
 
@@ -119,7 +127,9 @@ export const PlayerLobby: React.FC<PlayerLobbyProps> = ({ player, isHost, joined
         ) : (
           <div className="mx-[22px] lg:mx-0 mb-4 bg-surface border-[1.5px] border-coral/40 rounded-[14px] p-5 text-center">
             <div className="text-[11px] tracking-[2px] uppercase text-coral font-semibold mb-2">Host Dashboard</div>
-            <div className="text-[12px] text-muted leading-[1.4]">Waiting for players to join...</div>
+            <div className="text-[12px] text-muted leading-[1.4]">
+              {joinedPlayers.length === 0 ? 'Waiting for players to join...' : `${submittedCount} of ${joinedPlayers.length} submitted their facts`}
+            </div>
           </div>
         )}
 
@@ -145,8 +155,10 @@ export const PlayerLobby: React.FC<PlayerLobbyProps> = ({ player, isHost, joined
           </div>
           
           <div className="px-[22px] lg:px-0 grid grid-cols-1 md:grid-cols-2 gap-2 lg:gap-3">
-            {others.map((o) => (
-              <div key={o.nick} className="flex items-center gap-2.5 py-2.5 lg:p-3 border-b lg:border border-border lg:bg-surface/40 lg:rounded-[12px] animate-row-in">
+            {others.map((o) => {
+              const submitted = hasSubmitted(o);
+              return (
+              <div key={o.nick} className={`flex items-center gap-2.5 py-2.5 lg:p-3 border-b lg:border lg:rounded-[12px] animate-row-in transition-colors ${submitted ? 'border-green/40 lg:bg-green/10' : 'border-border lg:bg-surface/40'}`}>
                 {o.avatarId ? (
                   <img src={avatarUrl(o.avatarId)} className="w-8 h-8 lg:w-10 lg:h-10 rounded-full object-cover shrink-0" />
                 ) : (
@@ -158,9 +170,16 @@ export const PlayerLobby: React.FC<PlayerLobbyProps> = ({ player, isHost, joined
                   </div>
                 )}
                 <div className="text-[13px] lg:text-[14px] font-semibold flex-1">{o.nick}</div>
-                <div className="w-[7px] h-[7px] rounded-full bg-green"></div>
+                {submitted ? (
+                  <Badge variant="green" className="flex items-center gap-1">
+                    <IconCheck className="w-3 h-3" /> Submitted
+                  </Badge>
+                ) : (
+                  <Badge variant="amber">Waiting</Badge>
+                )}
               </div>
-            ))}
+              );
+            })}
           </div>
           
           <div className="flex items-center gap-2 pt-4 px-[22px] lg:hidden">
