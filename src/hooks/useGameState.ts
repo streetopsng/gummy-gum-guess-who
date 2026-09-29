@@ -25,6 +25,8 @@ export interface GameSession {
   startedAt?: number;
   lastActivity?: number;
   abandoned?: boolean;
+  endedAt?: number;
+  completed?: boolean;
   roundStartedAt?: Record<number, number>;
 }
 
@@ -220,6 +222,10 @@ export async function touchSessionActivity(code: string): Promise<void> {
 
 export async function markSessionExpired(code: string, abandoned: boolean): Promise<void> {
   await update(ref(database, `sessions/${code}`), abandoned ? { status: 'expired', abandoned: true } : { status: 'expired' });
+}
+
+export async function markSessionEnded(code: string, completed: boolean): Promise<void> {
+  await update(ref(database, `sessions/${code}`), { status: 'ended', endedAt: Date.now(), completed });
 }
 
 export async function checkSessionExists(code: string): Promise<boolean> {

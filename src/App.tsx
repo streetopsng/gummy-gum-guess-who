@@ -9,18 +9,19 @@ import { RoundLeaderboard } from './components/game/RoundLeaderboard';
 import { EndScreen } from './components/game/EndScreen';
 import { SessionEnded } from './components/game/SessionEnded';
 import { SessionExpiredModal } from './components/game/SessionExpiredModal';
+import { EndSessionButton, EndSessionModal } from './components/host/EndSession';
 import type { TeamMember, Opponent } from './data';
-import { useGameState, checkSessionExists, markRoundStarted, touchSessionActivity, markSessionExpired } from './hooks/useGameState';
+import { useGameState, checkSessionExists, markRoundStarted, touchSessionActivity, markSessionExpired, markSessionEnded } from './hooks/useGameState';
 import { getExpiryReason, HEARTBEAT_INTERVAL_MS, EXPIRY_CHECK_INTERVAL_MS } from './lib/sessionExpiry';
 import type { ExpiryContext } from './lib/sessionExpiry';
-import { resolveGummyGumLaunch, reportGummyGumResult, returnToGummyGum } from './lib/gummygumSession';
+import { resolveGummyGumLaunch, reportGummyGumResult, reportGummyGumCancel, returnToGummyGum } from './lib/gummygumSession';
 import type { GummyGumLaunchSession } from './lib/gummygumSession';
 
 import { BackgroundFx } from './components/ui/BackgroundFx';
 import { Button } from './components/ui/Button';
 import { IconBurst, IconFlame, IconBolt } from './components/ui/Icons';
 
-type Screen = 'MODE_SELECT' | 'HOST_SETUP' | 'PLAYER_JOIN' | 'PLAYER_LOBBY' | 'GAME' | 'ROUND_REACTION' | 'ROUND_LEADERBOARD' | 'END' | 'SESSION_ENDED';
+type Screen = 'MODE_SELECT' | 'HOST_SETUP' | 'PLAYER_JOIN' | 'PLAYER_LOBBY' | 'GAME' | 'ROUND_REACTION' | 'ROUND_LEADERBOARD' | 'END';
 type GummyGumAccessState = 'checking' | 'granted' | 'denied';
 
 function shuffle<T>(arr: T[]): T[] {
@@ -180,12 +181,14 @@ function App() {
   // standalone session with no ggSession keeps whatever (lack of) behavior
   // already existed for a vanished room.
   const hadSessionRef = useRef(false);
+  const hostExitInProgressRef = useRef(false);
+  const [endedNotice, setEndedNotice] = useState<{ completed: boolean } | null>(null);
   useEffect(() => {
     if (session) {
       hadSessionRef.current = true;
       return;
     }
-    if (!hadSessionRef.current || !ggSession) return;
+    if (!hadSessionRef.current || !ggSession || hostExitInProgressRef.current) return;
     hadSessionRef.current = false;
 
     if (ggSession.isHost) {
@@ -193,9 +196,20 @@ function App() {
       // redirect back to the hub, no need to re-hit the close endpoint.
       returnToGummyGum();
     } else {
-      setScreen('SESSION_ENDED');
+      setEndedNotice({ completed: false });
     }
   }, [session, ggSession]);
+
+  const sessionEnded = session?.status === 'ended';
+  const sessionCompleted = !!session?.completed;
+  useEffect(() => {
+    if (!sessionEnded || hostExitInProgressRef.current) return;
+    if (isHost) {
+      if (ggSession?.isHost) returnToGummyGum();
+      return;
+    }
+    setEndedNotice({ completed: sessionCompleted });
+  }, [sessionEnded, sessionCompleted, isHost, ggSession]);
 
   const [expiredContext, setExpiredContext] = useState<ExpiryContext | null>(null);
   const gameFinished = !!session?.gameQueue?.length && curQ >= session.gameQueue.length;
@@ -270,7 +284,7 @@ function App() {
   };
 
   const handleAnswer = async (correct: boolean, points: number) => {
-    if (!gameCode || !player || !session || expiredContext) return;
+    if (!gameCode || !player || !session || expiredContext || endedNotice || session.status !== 'playing') return;
     
     const myState = session.players?.[player.nick];
     if (typeof myState?.answers?.[curQ] !== 'undefined') return;
@@ -334,8 +348,10 @@ function App() {
   // hub once their session reaches the final results screen. Guarded so it
   // only fires once per game, and never blocks or affects gameplay.
   const hasReportedRef = useRef(false);
-  useEffect(() => {
-    if (screen !== 'END' || !isHost || hasReportedRef.current || !session) return;
+  const reportPromiseRef = useRef<Promise<void> | null>(null);
+  const sendFinalReport = (): Promise<void> => {
+    if (reportPromiseRef.current) return reportPromiseRef.current;
+    if (!session) return Promise.resolve();
     hasReportedRef.current = true;
 
     const leaderboard = [...opponents];
@@ -352,7 +368,7 @@ function App() {
     leaderboard.sort((a, b) => b.score - a.score);
     const rank = player ? leaderboard.findIndex((p) => p.nick === player.nick) + 1 : null;
 
-    reportGummyGumResult({
+    reportPromiseRef.current = reportGummyGumResult({
       gameCode,
       totalRounds: session.gameQueue.length,
       totalPlayers,
@@ -369,7 +385,28 @@ function App() {
         isHost: !!player && p.nick === player.nick,
       })),
     }).catch((err) => console.error('GummyGum result report failed', err));
+    return reportPromiseRef.current;
+  };
+
+  useEffect(() => {
+    if (screen !== 'END' || !isHost || hasReportedRef.current || !session) return;
+    sendFinalReport();
   }, [screen, isHost, session, gameCode, totalPlayers, opponents, player, playerScore, playerStreak, playerMaxStreak]);
+
+  const [showEndConfirm, setShowEndConfirm] = useState(false);
+  const [endingSession, setEndingSession] = useState(false);
+  const handleEndSession = async () => {
+    if (hostExitInProgressRef.current) return;
+    hostExitInProgressRef.current = true;
+    setEndingSession(true);
+    const completed = gameFinished;
+    if (gameCode) {
+      await markSessionEnded(gameCode, completed).catch((err) => console.error('Failed to mark session ended', err));
+    }
+    if (completed) await sendFinalReport();
+    else await reportGummyGumCancel();
+    returnToGummyGum();
+  };
 
   if (ggAccessState === 'checking') {
     return <div className="min-h-screen w-full bg-transparent" />;
@@ -450,8 +487,9 @@ function App() {
               isHost={isHost}
               joinedPlayers={session?.players ? Object.values(session.players) : []}
               onStart={handleStartGame}
+              onEndSession={() => setShowEndConfirm(true)}
               onUpdateFacts={(facts) => {
-                if (gameCode && player) {
+                if (gameCode && player && session?.status === 'lobby' && !endedNotice) {
                   updatePlayerFacts(gameCode, player.nick, facts);
                 }
               }}
@@ -503,7 +541,15 @@ function App() {
             />
           )}
 
-          {screen === 'SESSION_ENDED' && <SessionEnded />}
+          {isHost && (screen === 'GAME' || screen === 'ROUND_REACTION' || screen === 'ROUND_LEADERBOARD') && (
+            <EndSessionButton onClick={() => setShowEndConfirm(true)} className="fixed top-3 right-3 z-[150] backdrop-blur-sm" />
+          )}
+
+          {isHost && showEndConfirm && (
+            <EndSessionModal ending={endingSession} onCancel={() => setShowEndConfirm(false)} onConfirm={handleEndSession} />
+          )}
+
+          {endedNotice && !isHost && <SessionEnded completed={endedNotice.completed} />}
 
           {expiredContext && <SessionExpiredModal isHost={isHost} context={expiredContext} />}
 
@@ -522,6 +568,7 @@ function App() {
                 setIsHost(false);
               }}
               showGummyGumExit={!!ggSession}
+              onEndSession={() => setShowEndConfirm(true)}
             />
           )}
         </div>

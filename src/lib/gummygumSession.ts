@@ -132,6 +132,7 @@ export async function reportGummyGumResult(report: Record<string, unknown>): Pro
   try {
     await fetch(`${API_URL}/api/gummygum/launch/report`, {
       method: 'POST',
+      keepalive: true,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ reportToken: session.reportToken, report }),
     });
@@ -140,6 +141,23 @@ export async function reportGummyGumResult(report: Record<string, unknown>): Pro
     localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
   } catch (err) {
     console.error('GummyGum result report failed', err);
+  }
+}
+
+// Host-only: ends the hosted session hub-side when the game did not complete.
+export async function reportGummyGumCancel(): Promise<void> {
+  const session = getGummyGumSession();
+  if (!session || !session.isHost || !session.reportToken) return;
+
+  try {
+    await fetch(`${API_URL}/api/gummygum/launch/cancel`, {
+      method: 'POST',
+      keepalive: true,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reportToken: session.reportToken }),
+    });
+  } catch (err) {
+    console.error('GummyGum cancel failed', err);
   }
 }
 
