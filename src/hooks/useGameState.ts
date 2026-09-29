@@ -72,31 +72,28 @@ export function useGameState(gameCode?: string) {
     // A rejoin (new tab/browser, no persisted auth) is only recognizable by
     // the GummyGum-verified email — the nick is free text the guest can
     // retype differently each time, so it can't be trusted as the identity.
-    const existingKey = player.ggEmail
-      ? Object.keys(players).find((key) => players[key].ggEmail === player.ggEmail)
-      : undefined;
+    const email = normalizeEmail(player.ggEmail);
+    if (email) player = { ...player, ggEmail: email };
+    const existingKey = findPlayerKeyByEmail(players, email);
 
-    if (existingKey) {
-      const existing = players[existingKey];
-      return {
-        name: existing.name,
-        nick: existing.nick,
-        color: existing.color,
-        facts: existing.facts,
-        imgSrc: existing.imgSrc,
-        avatarId: existing.avatarId,
-        ggEmail: player.ggEmail,
-      };
-    }
+    if (existingKey) return toTeamMember(players[existingKey], email);
 
-    const playerRef = ref(database, `sessions/${code}/players/${player.nick}`);
-    if (players[player.nick]) {
-      throw new Error("This codename is already taken by someone else!");
+    let nick = player.nick;
+    if (players[nick]) {
+      if (!player.ggEmail) {
+        throw new Error("This codename is already taken by someone else!");
+      }
+      // Invite names are read-only, so a duplicate gets a suffix instead of a dead-end error.
+      let n = 2;
+      while (players[`${player.nick} ${n}`]) n++;
+      nick = `${player.nick} ${n}`;
     }
+    const joined: TeamMember = nick === player.nick ? player : { ...player, name: nick, nick };
+    const playerRef = ref(database, `sessions/${code}/players/${nick}`);
 
     await set(playerRef, {
-      name: player.name,
-      nick: player.nick,
+      name: joined.name,
+      nick,
       color: player.color,
       facts: player.facts,
       imgSrc: player.imgSrc || '',
@@ -107,7 +104,7 @@ export function useGameState(gameCode?: string) {
       maxStreak: 0,
       answers: {}
     });
-    return player;
+    return joined;
   };
 
   const updatePlayerFacts = async (code: string, nick: string, facts: string[]) => {
@@ -229,6 +226,27 @@ export async function markSessionExpired(code: string, abandoned: boolean): Prom
 
 export async function markSessionEnded(code: string, completed: boolean): Promise<void> {
   await update(ref(database, `sessions/${code}`), { status: 'ended', endedAt: Date.now(), completed });
+}
+
+export function normalizeEmail(email?: string | null): string {
+  return (email || '').toLowerCase().trim();
+}
+
+export function findPlayerKeyByEmail(players: Record<string, PlayerState> | undefined, email: string): string | undefined {
+  if (!email || !players) return undefined;
+  return Object.keys(players).find((key) => normalizeEmail(players[key].ggEmail) === email);
+}
+
+export function toTeamMember(existing: PlayerState, email: string): TeamMember {
+  return {
+    name: existing.name,
+    nick: existing.nick,
+    color: existing.color,
+    facts: existing.facts,
+    imgSrc: existing.imgSrc,
+    avatarId: existing.avatarId,
+    ggEmail: email,
+  };
 }
 
 export async function getSession(code: string): Promise<GameSession | null> {

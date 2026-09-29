@@ -11,7 +11,7 @@ import { SessionEnded } from './components/game/SessionEnded';
 import { SessionExpiredModal } from './components/game/SessionExpiredModal';
 import { EndSessionButton, EndSessionModal } from './components/host/EndSession';
 import type { TeamMember, Opponent } from './data';
-import { useGameState, checkSessionExists, getSession, stampHostedSession, waitForLaunchRoom, markRoundStarted, touchSessionActivity, markSessionExpired, markSessionEnded } from './hooks/useGameState';
+import { useGameState, checkSessionExists, getSession, findPlayerKeyByEmail, normalizeEmail, toTeamMember, stampHostedSession, waitForLaunchRoom, markRoundStarted, touchSessionActivity, markSessionExpired, markSessionEnded } from './hooks/useGameState';
 import { getExpiryReason, isFromEarlierRoom, HEARTBEAT_INTERVAL_MS, EXPIRY_CHECK_INTERVAL_MS } from './lib/sessionExpiry';
 import type { ExpiryContext } from './lib/sessionExpiry';
 import { resolveGummyGumLaunch, reportGummyGumResult, reportGummyGumCancel, returnToGummyGum } from './lib/gummygumSession';
@@ -133,7 +133,23 @@ function App() {
       const savedCode = sessionStorage.getItem('guesswho_code') || localStorage.getItem('guesswho_code');
       const joinKey = ggSession.hostedSessionId ? `${code}_${ggSession.hostedSessionId}` : code;
       const alreadyJoined = !!email && localStorage.getItem(`guesswho_joined_${joinKey}_${email}`) === 'true';
+      if (email) {
+        // The invite email is the identity: rejoining from any device/browser reclaims the original slot.
+        const room = await getSession(code).catch(() => null);
+        const existingKey = room && !isFromEarlierRoom(room, ggSession.hostedSessionId) ? findPlayerKeyByEmail(room.players, email) : undefined;
+        if (room && existingKey) {
+          try {
+            sessionStorage.setItem('guesswho_code', joinKey);
+            localStorage.setItem('guesswho_code', joinKey);
+            localStorage.setItem(`guesswho_joined_${joinKey}_${email}`, 'true');
+          } catch {}
+          setPlayer(toTeamMember(room.players![existingKey], email));
+          setScreen('PLAYER_LOBBY');
+          return;
+        }
+      }
       let savedPlayer = getInitialPlayer();
+      if (savedPlayer && email && normalizeEmail(savedPlayer.ggEmail) !== email) savedPlayer = null;
       if (!savedPlayer && email) {
         try {
           const raw = localStorage.getItem(`guesswho_player_${email}`);

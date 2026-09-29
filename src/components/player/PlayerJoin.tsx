@@ -5,7 +5,7 @@ import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { AVATAR_IDS, avatarUrl } from '../../lib/avatars';
 import { GameRulesModal } from '../GameRulesModal';
-import { IconChevronRight } from '../ui/Icons';
+import { IconCheck, IconChevronRight } from '../ui/Icons';
 
 interface PlayerJoinProps {
   onBack: () => void;
@@ -16,21 +16,35 @@ interface PlayerJoinProps {
   ggSession?: boolean;
 }
 
+// The nick doubles as a Realtime Database key, which cannot contain these characters.
+const toSafeNick = (value: string) => value.replace(/[.#$[\]/]/g, '').trim();
+
+const IconLock: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <rect x="5" y="11" width="14" height="9" rx="2" />
+    <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+  </svg>
+);
+
 export const PlayerJoin: React.FC<PlayerJoinProps> = ({ onBack, onJoin, initialCode, initialNick, ggEmail, ggSession }) => {
+  // GummyGum launches carry the invite name, which participants may not change.
+  const lockedNick = ggSession && initialNick ? toSafeNick(initialNick) : '';
   const [code, setCode] = useState(initialCode || '');
-  const [nick, setNick] = useState(initialNick || '');
+  const [nick, setNick] = useState(lockedNick || initialNick || '');
   const [avatarId, setAvatarId] = useState(AVATAR_IDS[0]);
   const [error, setError] = useState('');
   const [showRules, setShowRules] = useState(false);
 
+  const finalNick = (lockedNick || nick).trim();
+
   const handlePreJoin = () => {
-    if (!code.trim() || !nick.trim()) {
+    if (!code.trim() || !finalNick) {
       setError('Please fill in all fields.');
       return;
     }
-    
-    if (/[.#$\[\]]/.test(nick)) {
-      setError('Codename cannot contain special characters like . # $ [ ]');
+
+    if (/[.#$[\]/]/.test(finalNick)) {
+      setError('Codename cannot contain special characters like . # $ [ ] /');
       return;
     }
 
@@ -40,7 +54,7 @@ export const PlayerJoin: React.FC<PlayerJoinProps> = ({ onBack, onJoin, initialC
 
   const handleJoin = async () => {
     setShowRules(false);
-    
+
     const randomColor = COLORS[Math.floor(Math.random() * COLORS.length)];
     const bgColors = ['#2a1a0a', '#0a1a2a', '#1a0a2a', '#0a2a1a', '#2a0a0a', '#2a1a0a', '#0a2a2a', '#2a0a1a'];
     const randomBg = bgColors[Math.floor(Math.random() * bgColors.length)];
@@ -48,8 +62,8 @@ export const PlayerJoin: React.FC<PlayerJoinProps> = ({ onBack, onJoin, initialC
     const emoji = emojiList[Math.floor(Math.random() * emojiList.length)];
 
     const player: TeamMember = {
-      name: nick.trim(), // We use nick for name since name was removed
-      nick: nick.trim(),
+      name: finalNick,
+      nick: finalNick,
       color: randomColor,
       facts: ['', '', '', ''],
       imgSrc: makeSVG(emoji, randomBg),
@@ -60,40 +74,69 @@ export const PlayerJoin: React.FC<PlayerJoinProps> = ({ onBack, onJoin, initialC
     try {
       await onJoin(player, code.trim().toUpperCase());
     } catch (e: any) {
-      setError(e.message || "Failed to join game");
+      setError(e.message || 'Failed to join game');
     }
   };
 
   return (
-    <div className="h-full w-full relative overflow-y-auto px-5 py-8 flex flex-col">
-      <div className="w-full max-w-[400px] mx-auto flex flex-col items-center my-auto pb-8">
-        <div className="text-[26px] lg:text-[32px] font-black text-center mb-1.5 mt-4">Join the game</div>
-        <div className="text-[13px] lg:text-[14px] text-muted text-center mb-7 leading-[1.5]">
-          {ggSession ? 'Tell us about yourself.' : 'Enter the code your host shared and tell us about yourself.'}
-        </div>
+    <div className="h-full lg:h-auto lg:max-h-[85vh] w-full flex flex-col">
+      <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide px-5 pt-8 pb-5 lg:pt-10">
+        <div className="w-full max-w-[440px] mx-auto">
+          <div className="text-[11px] text-amber tracking-widest uppercase font-semibold mb-1.5">Guess Who?</div>
+          <h1 className="text-[26px] lg:text-[30px] font-black leading-tight">
+            {ggSession ? 'Choose your avatar' : 'Join the game'}
+          </h1>
+          <p className="text-[13px] lg:text-[14px] text-muted mt-1.5 leading-[1.5]">
+            {ggSession
+              ? 'This is how your teammates will see you during the game.'
+              : 'Enter the code your host shared, then set up how others will see you.'}
+          </p>
 
-        <div className="w-full flex flex-col gap-3">
           {!ggSession && (
             <Input
+              className="mt-6 mb-0!"
               placeholder="Game code (e.g. GW-491)"
               maxLength={10}
               value={code}
               onChange={(e) => setCode(e.target.value)}
             />
           )}
-          <Input
-            placeholder="Codename/Nickname (e.g. QuietStorm)"
-            maxLength={20}
-            value={nick}
-            onChange={(e) => setNick(e.target.value)}
-            error={error}
-          />
 
-          <div className="mt-1">
-            <div className="text-[11px] text-muted tracking-widest uppercase mb-[7px] font-semibold text-center">
-              Choose your avatar
+          <div className="mt-6 bg-surface border border-border rounded-lg p-3.5 flex items-center gap-3.5">
+            <img
+              src={avatarUrl(avatarId)}
+              alt=""
+              className="w-14 h-14 rounded-full object-cover shrink-0 border-[1.5px] border-amber bg-surface2"
+            />
+            <div className="flex-1 min-w-0">
+              <div className="text-[11px] text-muted tracking-widest uppercase font-semibold">Playing as</div>
+              {lockedNick ? (
+                <>
+                  <div className="text-[17px] font-bold truncate mt-0.5">{lockedNick}</div>
+                  <div className="flex items-center gap-1 text-[12px] text-muted mt-0.5">
+                    <IconLock className="w-3 h-3 shrink-0" />
+                    <span className="truncate">Name from your GummyGum invite</span>
+                  </div>
+                </>
+              ) : (
+                <input
+                  aria-label="Codename or nickname"
+                  placeholder="Codename (e.g. QuietStorm)"
+                  maxLength={20}
+                  value={nick}
+                  onChange={(e) => setNick(e.target.value)}
+                  className="w-full mt-1 bg-surface2 border border-border rounded-md text-white text-[14px] px-3 py-2.5 outline-none transition-colors duration-150 focus:border-amber placeholder:text-white/25"
+                />
+              )}
             </div>
-            <div className="grid grid-cols-6 gap-2 max-h-[168px] overflow-y-auto p-1 scrollbar-hide">
+          </div>
+
+          <div className="mt-6">
+            <div className="flex items-baseline justify-between mb-2.5">
+              <div className="text-[11px] text-muted tracking-widest uppercase font-semibold">Avatar</div>
+              <div className="text-[12px] text-muted">Tap to select</div>
+            </div>
+            <div className="grid grid-cols-5 sm:grid-cols-6 lg:grid-cols-7 gap-2.5">
               {AVATAR_IDS.map((id) => {
                 const isSelected = avatarId === id;
                 return (
@@ -101,30 +144,42 @@ export const PlayerJoin: React.FC<PlayerJoinProps> = ({ onBack, onJoin, initialC
                     key={id}
                     type="button"
                     onClick={() => setAvatarId(id)}
-                    className={`aspect-square rounded-full p-0.5 border-[1.5px] transition-all duration-150 cursor-pointer ${
-                      isSelected ? 'border-amber bg-[#F5A6231A]' : 'border-border hover:border-amber/50'
+                    aria-label={`Avatar ${id.replace('av-', '')}`}
+                    aria-pressed={isSelected}
+                    className={`relative aspect-square rounded-full p-[3px] border-[1.5px] transition-colors duration-150 cursor-pointer ${
+                      isSelected ? 'border-amber bg-amber/10' : 'border-border bg-surface hover:border-amber/50'
                     }`}
                   >
-                    <img
-                      src={avatarUrl(id)}
-                      alt=""
-                      className="w-full h-full rounded-full object-cover"
-                    />
+                    <img src={avatarUrl(id)} alt="" className="w-full h-full rounded-full object-cover" />
+                    {isSelected && (
+                      <span className="absolute -top-0.5 -right-0.5 w-[18px] h-[18px] rounded-full bg-amber text-[#1a0f00] flex items-center justify-center border-2 border-bg">
+                        <IconCheck className="w-2.5 h-2.5" strokeWidth={3} />
+                      </span>
+                    )}
                   </button>
                 );
               })}
             </div>
           </div>
+        </div>
+      </div>
 
-          <Button variant="coral" onClick={handlePreJoin} className="mt-4 flex items-center justify-center gap-1.5">Join game <IconChevronRight className="w-4 h-4" /></Button>
-          <Button variant="ghost" onClick={onBack}>Back to Home</Button>
+      <div className="shrink-0 border-t border-border bg-bg/95 backdrop-blur-sm px-5 pt-3.5 pb-[max(14px,env(safe-area-inset-bottom))] lg:bg-transparent">
+        <div className="w-full max-w-[440px] mx-auto flex flex-col gap-2">
+          {error && <div className="text-[12px] text-red text-center" role="alert">{error}</div>}
+          <Button variant="coral" onClick={handlePreJoin} className="flex items-center justify-center gap-1.5">
+            {ggSession ? 'Continue' : 'Join game'} <IconChevronRight className="w-4 h-4" />
+          </Button>
+          {!ggSession && (
+            <Button variant="ghost" onClick={onBack} className="p-3! text-[14px]">Back to Home</Button>
+          )}
         </div>
       </div>
 
       {showRules && (
         <GameRulesModal
           onConfirm={handleJoin}
-          name={nick.trim()}
+          name={finalNick}
         />
       )}
     </div>
