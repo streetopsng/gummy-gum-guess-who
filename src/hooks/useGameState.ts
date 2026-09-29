@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { database } from '../firebase';
-import { ref, set, onValue, update, get, child, increment } from 'firebase/database';
+import { ref, set, onValue, update, get, child, increment, runTransaction } from 'firebase/database';
 import type { TeamMember } from '../data';
 
 export interface PlayerState {
@@ -18,9 +18,14 @@ export interface PlayerState {
 }
 
 export interface GameSession {
-  status: 'lobby' | 'playing' | 'ended';
+  status: 'lobby' | 'playing' | 'ended' | 'expired';
   gameQueue: any[]; // will be GameRoundItem[]
   players?: Record<string, PlayerState>;
+  createdAt?: number;
+  startedAt?: number;
+  lastActivity?: number;
+  abandoned?: boolean;
+  roundStartedAt?: Record<number, number>;
 }
 
 export function useGameState(gameCode?: string) {
@@ -47,6 +52,7 @@ export function useGameState(gameCode?: string) {
     const sessionRef = ref(database, `sessions/${code}`);
     await set(sessionRef, {
       status: 'lobby',
+      createdAt: Date.now(),
       gameQueue: [],
       uploads: {},
       players: {}
@@ -181,6 +187,8 @@ export function useGameState(gameCode?: string) {
     const sessionRef = ref(database, `sessions/${code}`);
     await update(sessionRef, {
       status: 'playing',
+      startedAt: Date.now(),
+      roundStartedAt: null,
       gameQueue: arr
     });
   };
@@ -193,6 +201,19 @@ export function useGameState(gameCode?: string) {
     updatePlayerAnswer,
     startGame
   };
+}
+
+// First client to show a round stamps its start; everyone derives the countdown from that.
+export async function markRoundStarted(code: string, roundIndex: number): Promise<void> {
+  await runTransaction(ref(database, `sessions/${code}/roundStartedAt/${roundIndex}`), (current) => current ?? Date.now());
+}
+
+export async function touchSessionActivity(code: string): Promise<void> {
+  await update(ref(database, `sessions/${code}`), { lastActivity: Date.now() });
+}
+
+export async function markSessionExpired(code: string, abandoned: boolean): Promise<void> {
+  await update(ref(database, `sessions/${code}`), abandoned ? { status: 'expired', abandoned: true } : { status: 'expired' });
 }
 
 export async function checkSessionExists(code: string): Promise<boolean> {

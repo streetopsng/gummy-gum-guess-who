@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import type { TeamMember, Opponent } from '../../data';
 import { avatarUrl } from '../../lib/avatars';
 import { IconFlame, IconCheck, IconClose } from '../ui/Icons';
@@ -16,7 +16,10 @@ interface GameScreenProps {
   playerAvatarId?: string;
   onAnswer: (correct: boolean, points: number) => void;
   isHost?: boolean;
+  roundStartedAt?: number;
 }
+
+const ROUND_SECONDS = 15;
 
 export const GameScreen: React.FC<GameScreenProps> = ({
   subject,
@@ -31,15 +34,19 @@ export const GameScreen: React.FC<GameScreenProps> = ({
   playerAvatarId,
   onAnswer,
   isHost = false,
+  roundStartedAt,
 }) => {
-  const [timeLeft, setTimeLeft] = useState(15);
+  const [timeLeft, setTimeLeft] = useState(ROUND_SECONDS);
+  // Fallback until the shared round start (persisted in RTDB) arrives; that one survives a refresh.
+  const localStartRef = useRef(Date.now());
   const [answered, setAnswered] = useState(false);
   const [selectedCard, setSelectedCard] = useState<string | null>(null);
   const [reveal, setReveal] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
 
   useEffect(() => {
-    setTimeLeft(15);
+    localStartRef.current = Date.now();
+    setTimeLeft(ROUND_SECONDS);
     setAnswered(false);
     setSelectedCard(null);
     setReveal(false);
@@ -49,19 +56,23 @@ export const GameScreen: React.FC<GameScreenProps> = ({
   useEffect(() => {
     if (answered || isHost) return;
 
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          handleTimeUp();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+    let timer: ReturnType<typeof setInterval> | undefined;
+    const tick = () => {
+      const start = roundStartedAt ?? localStartRef.current;
+      const left = Math.max(0, ROUND_SECONDS - Math.floor((Date.now() - start) / 1000));
+      setTimeLeft(left);
+      if (left <= 0) {
+        if (timer) clearInterval(timer);
+        handleTimeUp();
+        return true;
+      }
+      return false;
+    };
+    if (tick()) return;
+    timer = setInterval(tick, 1000);
 
     return () => clearInterval(timer);
-  }, [answered, isHost]);
+  }, [answered, isHost, roundStartedAt, subject]);
 
   const handleTimeUp = () => {
     if (!answered) {
