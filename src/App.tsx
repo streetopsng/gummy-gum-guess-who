@@ -273,7 +273,7 @@ function App() {
     if (!gameCode || !player || !session || expiredContext) return;
     
     const myState = session.players?.[player.nick];
-    let newScore = (myState?.score || 0) + points;
+    if (typeof myState?.answers?.[curQ] !== 'undefined') return;
     let newStreak = correct ? (myState?.streak || 0) + 1 : 0;
     let newMaxStreak = Math.max(myState?.maxStreak || 0, newStreak);
     
@@ -292,7 +292,7 @@ function App() {
     await updatePlayerAnswer(
       gameCode, 
       player.nick, 
-      newScore, 
+      points, 
       newStreak, 
       newMaxStreak, 
       curQ,
@@ -499,6 +499,7 @@ function App() {
               onAnswer={handleAnswer}
               isHost={isHost && !player}
               roundStartedAt={session.roundStartedAt?.[curQ]}
+              persistedAnswer={session.players?.[player?.nick || '']?.answers?.[curQ]}
             />
           )}
 

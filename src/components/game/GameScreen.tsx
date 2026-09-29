@@ -17,6 +17,7 @@ interface GameScreenProps {
   onAnswer: (correct: boolean, points: number) => void;
   isHost?: boolean;
   roundStartedAt?: number;
+  persistedAnswer?: boolean;
 }
 
 const ROUND_SECONDS = 15;
@@ -35,6 +36,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({
   onAnswer,
   isHost = false,
   roundStartedAt,
+  persistedAnswer,
 }) => {
   const [timeLeft, setTimeLeft] = useState(ROUND_SECONDS);
   // Fallback until the shared round start (persisted in RTDB) arrives; that one survives a refresh.
@@ -43,6 +45,11 @@ export const GameScreen: React.FC<GameScreenProps> = ({
   const [selectedCard, setSelectedCard] = useState<string | null>(null);
   const [reveal, setReveal] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
+  // The persisted answer covers a refresh after answering, when local state is gone.
+  const hasPersisted = typeof persistedAnswer === 'boolean';
+  const isAnswered = answered || hasPersisted;
+  const showReveal = reveal || hasPersisted;
+  const shownCorrect = answered ? isCorrect : !!persistedAnswer;
 
   useEffect(() => {
     localStartRef.current = Date.now();
@@ -54,7 +61,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({
   }, [subject]);
 
   useEffect(() => {
-    if (answered || isHost) return;
+    if (isAnswered || isHost) return;
 
     let timer: ReturnType<typeof setInterval> | undefined;
     const tick = () => {
@@ -72,10 +79,10 @@ export const GameScreen: React.FC<GameScreenProps> = ({
     timer = setInterval(tick, 1000);
 
     return () => clearInterval(timer);
-  }, [answered, isHost, roundStartedAt, subject]);
+  }, [isAnswered, isHost, roundStartedAt, subject]);
 
   const handleTimeUp = () => {
-    if (!answered) {
+    if (!isAnswered) {
       handleAnswer(null, false);
     }
   };
@@ -83,7 +90,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({
   const getMultiplier = (s: number) => (s >= 5 ? 2.0 : s >= 3 ? 1.5 : s >= 2 ? 1.2 : 1.0);
 
   const handleAnswer = (nick: string | null, clickedCorrect: boolean) => {
-    if (answered) return;
+    if (isAnswered) return;
     setAnswered(true);
     setSelectedCard(nick);
     setReveal(true);
@@ -146,8 +153,8 @@ export const GameScreen: React.FC<GameScreenProps> = ({
         <div className="flex-none lg:flex-1 flex flex-col justify-center items-center px-5 pt-2 pb-2 lg:p-8 lg:border-r lg:border-border/50">
           <div
             className={`w-[220px] lg:w-[280px] bg-cream rounded-sm p-5 lg:p-6 pb-12 lg:pb-16 border border-black/10 shadow-[0_4px_16px_rgba(0,0,0,0.35)] relative transition-transform duration-150 flex items-center justify-center ${
-              reveal && !isCorrect && !isFactOwner ? 'animate-shake' : ''
-            } ${reveal && !isFactOwner ? 'animate-flip-reveal' : ''}`}
+              showReveal && !shownCorrect && !isFactOwner ? 'animate-shake' : ''
+            } ${showReveal && !isFactOwner ? 'animate-flip-reveal' : ''}`}
           >
             <div className="text-[16px] lg:text-[20px] text-[#2a2010] text-center leading-[1.4] italic font-medium min-h-[120px] flex items-center justify-center w-full">
               "{fact}"
@@ -155,7 +162,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({
 
             <div
               className={`absolute bottom-3 lg:bottom-4 left-0 right-0 text-center text-[15px] lg:text-[18px] font-extrabold text-coral tracking-[0.5px] ${
-                reveal || isNonInteractive ? 'block' : 'hidden'
+                showReveal || isNonInteractive ? 'block' : 'hidden'
               }`}
             >
               {isFactOwner ? "Your Fact" : subject.name}
@@ -165,20 +172,20 @@ export const GameScreen: React.FC<GameScreenProps> = ({
               <>
                 <div
                   className={`absolute inset-0 bg-[#22C55E40] rounded-sm flex flex-col items-center justify-center ${
-                    reveal && isCorrect ? 'animate-pop-in flex' : 'hidden'
+                    showReveal && shownCorrect ? 'animate-pop-in flex' : 'hidden'
                   }`}
                 >
                   <IconCheck className="w-12 h-12 lg:w-16 lg:h-16 text-[#166534]" strokeWidth={2.5} />
-                  {answered && <div className="text-[12px] font-bold mt-2 animate-pulse bg-black/50 text-white px-3 py-1 rounded-full">Waiting for others...</div>}
+                  {isAnswered && <div className="text-[12px] font-bold mt-2 animate-pulse bg-black/50 text-white px-3 py-1 rounded-full">Waiting for others...</div>}
                 </div>
 
                 <div
                   className={`absolute inset-0 bg-[#EF444440] rounded-sm flex flex-col items-center justify-center ${
-                    reveal && !isCorrect ? 'animate-pop-in flex' : 'hidden'
+                    showReveal && !shownCorrect ? 'animate-pop-in flex' : 'hidden'
                   }`}
                 >
                   <IconClose className="w-12 h-12 lg:w-16 lg:h-16 text-[#991b1b]" strokeWidth={2.5} />
-                  {answered && <div className="text-[12px] font-bold mt-2 animate-pulse bg-black/50 text-white px-3 py-1 rounded-full">Waiting for others...</div>}
+                  {isAnswered && <div className="text-[12px] font-bold mt-2 animate-pulse bg-black/50 text-white px-3 py-1 rounded-full">Waiting for others...</div>}
                 </div>
               </>
             )}
@@ -253,7 +260,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({
                 let btnClass = 'border-border bg-surface lg:bg-surface/60 lg:backdrop-blur-sm';
                 let avatarClass = '';
                 
-                if (reveal) {
+                if (showReveal) {
                   if (isTarget) {
                     btnClass = 'border-green bg-[#22C55E26]';
                     avatarClass = '!bg-green';
@@ -270,9 +277,9 @@ export const GameScreen: React.FC<GameScreenProps> = ({
                 return (
                   <button
                     key={opt.nick}
-                    disabled={answered}
+                    disabled={isAnswered}
                     onClick={() => handleAnswer(opt.nick, isTarget)}
-                    className={`border-[1.5px] rounded-[14px] p-3 lg:p-5 cursor-pointer transition-all duration-150 flex flex-col items-center gap-1.5 lg:gap-2.5 text-center ${btnClass} ${!answered ? 'hover:border-amber hover:bg-[#F5A62314] lg:hover:-translate-y-1' : ''}`}
+                    className={`border-[1.5px] rounded-[14px] p-3 lg:p-5 cursor-pointer transition-all duration-150 flex flex-col items-center gap-1.5 lg:gap-2.5 text-center ${btnClass} ${!isAnswered ? 'hover:border-amber hover:bg-[#F5A62314] lg:hover:-translate-y-1' : ''}`}
                   >
                     {opt.avatarId ? (
                       <img

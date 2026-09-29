@@ -111,22 +111,27 @@ export function useGameState(gameCode?: string) {
   };
 
   const updatePlayerAnswer = async (
-    code: string, 
-    nick: string, 
-    score: number, 
-    streak: number, 
-    maxStreak: number, 
+    code: string,
+    nick: string,
+    points: number,
+    streak: number,
+    maxStreak: number,
     roundIndex: number,
     isCorrect: boolean,
     factOwnerNick: string,
     totalPlayers: number
-  ) => {
+  ): Promise<boolean> => {
+    // Claim the round first so a duplicate submission (e.g. after a refresh) can't score twice.
+    const claim = await runTransaction(
+      ref(database, `sessions/${code}/players/${nick}/answers/${roundIndex}`),
+      (current) => (current === null ? isCorrect : undefined)
+    );
+    if (!claim.committed) return false;
+
     const updates: any = {};
-    updates[`sessions/${code}/players/${nick}/score`] = score;
+    updates[`sessions/${code}/players/${nick}/score`] = increment(points);
     updates[`sessions/${code}/players/${nick}/streak`] = streak;
     updates[`sessions/${code}/players/${nick}/maxStreak`] = maxStreak;
-    // Save true if correct, false if incorrect (for tracking in the UI)
-    updates[`sessions/${code}/players/${nick}/answers/${roundIndex}`] = isCorrect;
 
     // Fact owner gets points if someone guesses wrong
     if (!isCorrect && nick !== factOwnerNick) {
@@ -135,6 +140,7 @@ export function useGameState(gameCode?: string) {
     }
 
     await update(ref(database), updates);
+    return true;
   };
 
   const startGame = async (code: string, players: Record<string, PlayerState>) => {
