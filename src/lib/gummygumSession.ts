@@ -20,6 +20,7 @@ export interface GummyGumLaunchSession {
   roomCode: string | null;
   isHost: boolean;
   invitedCount?: number | null;
+  hostedSessionId?: string | null;
   hubUrl: string;
   round: number;
   reported: boolean;
@@ -94,8 +95,9 @@ export async function resolveGummyGumLaunch(): Promise<GummyGumLaunchSession | n
     return null;
   }
 
+  const hostedSessionId = params.get('sessionId') || null;
   const existing = getGummyGumSession();
-  if (!existing || existing.roomCode !== body.data.roomCode) {
+  if (!existing || existing.roomCode !== body.data.roomCode || (existing.hostedSessionId || null) !== hostedSessionId) {
     sessionStorage.removeItem('guesswho_code');
     sessionStorage.removeItem('guesswho_player');
   }
@@ -111,6 +113,7 @@ export async function resolveGummyGumLaunch(): Promise<GummyGumLaunchSession | n
     roomCode: body.data.roomCode ?? null,
     isHost: Boolean(body.data.isHost),
     invitedCount: body.data.invitedCount ?? null,
+    hostedSessionId,
     hubUrl,
     round: 1,
     reported: false,

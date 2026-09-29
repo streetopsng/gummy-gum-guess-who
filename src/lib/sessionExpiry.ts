@@ -20,3 +20,10 @@ export function getExpiryReason(session: GameSession | null, now = Date.now()): 
   }
   return null;
 }
+
+// The hub reuses a PIN when a session is re-run, so the room under it may belong to an earlier hosted session.
+export function isFromEarlierRoom(session: GameSession | null, hostedSessionId?: string | null): boolean {
+  if (!session || !hostedSessionId) return false;
+  if (session.hostedSessionId) return session.hostedSessionId !== hostedSessionId;
+  return session.status === 'ended' || getExpiryReason(session) !== null;
+}

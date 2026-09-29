@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { database } from '../firebase';
 import { ref, set, onValue, update, get, child, increment, runTransaction } from 'firebase/database';
 import type { TeamMember } from '../data';
+import { isFromEarlierRoom } from '../lib/sessionExpiry';
 
 export interface PlayerState {
   name: string;
@@ -28,6 +29,7 @@ export interface GameSession {
   endedAt?: number;
   completed?: boolean;
   roundStartedAt?: Record<number, number>;
+  hostedSessionId?: string;
 }
 
 export function useGameState(gameCode?: string) {
@@ -50,14 +52,15 @@ export function useGameState(gameCode?: string) {
     return () => unsubscribe();
   }, [gameCode]);
 
-  const createSession = async (code: string) => {
+  const createSession = async (code: string, hostedSessionId?: string | null) => {
     const sessionRef = ref(database, `sessions/${code}`);
     await set(sessionRef, {
       status: 'lobby',
       createdAt: Date.now(),
       gameQueue: [],
       uploads: {},
-      players: {}
+      players: {},
+      ...(hostedSessionId ? { hostedSessionId } : {}),
     });
   };
 
@@ -226,6 +229,29 @@ export async function markSessionExpired(code: string, abandoned: boolean): Prom
 
 export async function markSessionEnded(code: string, completed: boolean): Promise<void> {
   await update(ref(database, `sessions/${code}`), { status: 'ended', endedAt: Date.now(), completed });
+}
+
+export async function getSession(code: string): Promise<GameSession | null> {
+  const snapshot = await get(ref(database, `sessions/${code}`));
+  return snapshot.exists() ? snapshot.val() : null;
+}
+
+export async function stampHostedSession(code: string, hostedSessionId: string): Promise<void> {
+  await update(ref(database, `sessions/${code}`), { hostedSessionId });
+}
+
+// Resolves once the host has (re)created the room for this hosted session.
+export function waitForLaunchRoom(code: string, hostedSessionId: string): Promise<void> {
+  return new Promise((resolve) => {
+    const status = { done: false };
+    const unsubscribe = onValue(ref(database, `sessions/${code}`), (snapshot) => {
+      const room = snapshot.exists() ? (snapshot.val() as GameSession) : null;
+      if (status.done || !room || isFromEarlierRoom(room, hostedSessionId)) return;
+      status.done = true;
+      resolve();
+      setTimeout(() => unsubscribe(), 0);
+    });
+  });
 }
 
 export async function checkSessionExists(code: string): Promise<boolean> {

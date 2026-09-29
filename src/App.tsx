@@ -11,8 +11,8 @@ import { SessionEnded } from './components/game/SessionEnded';
 import { SessionExpiredModal } from './components/game/SessionExpiredModal';
 import { EndSessionButton, EndSessionModal } from './components/host/EndSession';
 import type { TeamMember, Opponent } from './data';
-import { useGameState, checkSessionExists, markRoundStarted, touchSessionActivity, markSessionExpired, markSessionEnded } from './hooks/useGameState';
-import { getExpiryReason, HEARTBEAT_INTERVAL_MS, EXPIRY_CHECK_INTERVAL_MS } from './lib/sessionExpiry';
+import { useGameState, checkSessionExists, getSession, stampHostedSession, waitForLaunchRoom, markRoundStarted, touchSessionActivity, markSessionExpired, markSessionEnded } from './hooks/useGameState';
+import { getExpiryReason, isFromEarlierRoom, HEARTBEAT_INTERVAL_MS, EXPIRY_CHECK_INTERVAL_MS } from './lib/sessionExpiry';
 import type { ExpiryContext } from './lib/sessionExpiry';
 import { resolveGummyGumLaunch, reportGummyGumResult, reportGummyGumCancel, returnToGummyGum } from './lib/gummygumSession';
 import type { GummyGumLaunchSession } from './lib/gummygumSession';
@@ -51,7 +51,7 @@ function App() {
   
   const [gameCode, setGameCode] = useState<string | null>(null);
   const [isHost, setIsHost] = useState(false);
-  const { session, createSession, joinSession, updatePlayerFacts, updatePlayerAnswer, startGame } = useGameState(gameCode || undefined);
+  const { session: roomSession, createSession, joinSession, updatePlayerFacts, updatePlayerAnswer, startGame } = useGameState(gameCode || undefined);
   
   const [player, setPlayerState] = useState<TeamMember | null>(getInitialPlayer);
 
@@ -86,6 +86,10 @@ function App() {
 
   const [ggAccessState, setGgAccessState] = useState<GummyGumAccessState>('checking');
   const [ggSession, setGgSession] = useState<GummyGumLaunchSession | null>(null);
+  const [waitingForHost, setWaitingForHost] = useState(false);
+
+  // A participant must not attach to (or see ended/expired from) a room left over from an earlier run of this PIN.
+  const session = roomSession && !ggSession?.isHost && isFromEarlierRoom(roomSession, ggSession?.hostedSessionId) ? null : roomSession;
 
   useEffect(() => {
     resolveGummyGumLaunch()
@@ -110,8 +114,15 @@ function App() {
     (async () => {
       if (ggSession.isHost) {
         // Host never plays — no facts, no score, never seated as a player.
-        const exists = await checkSessionExists(code);
-        if (!exists) await createSession(code);
+        const hostedSessionId = ggSession.hostedSessionId;
+        if (hostedSessionId) {
+          const existing = await getSession(code);
+          if (!existing || isFromEarlierRoom(existing, hostedSessionId)) await createSession(code, hostedSessionId);
+          else if (!existing.hostedSessionId) await stampHostedSession(code, hostedSessionId);
+        } else {
+          const exists = await checkSessionExists(code);
+          if (!exists) await createSession(code);
+        }
         setIsHost(true);
         setGameCode(code);
         setScreen('PLAYER_LOBBY');
@@ -120,6 +131,8 @@ function App() {
       setGameCode(code);
       const email = (ggSession.player?.email || '').toLowerCase().trim();
       const savedCode = sessionStorage.getItem('guesswho_code') || localStorage.getItem('guesswho_code');
+      const joinKey = ggSession.hostedSessionId ? `${code}_${ggSession.hostedSessionId}` : code;
+      const alreadyJoined = !!email && localStorage.getItem(`guesswho_joined_${joinKey}_${email}`) === 'true';
       let savedPlayer = getInitialPlayer();
       if (!savedPlayer && email) {
         try {
@@ -127,7 +140,10 @@ function App() {
           if (raw) savedPlayer = JSON.parse(raw);
         } catch {}
       }
-      if (savedPlayer && (savedCode === code || !savedCode || (email && localStorage.getItem(`guesswho_joined_${code}_${email}`) === 'true'))) {
+      const canResume = ggSession.hostedSessionId
+        ? savedCode === joinKey || alreadyJoined
+        : savedCode === code || !savedCode || alreadyJoined;
+      if (savedPlayer && canResume) {
         setPlayer(savedPlayer);
         setScreen('PLAYER_LOBBY');
         return;
@@ -260,16 +276,26 @@ function App() {
       setShowGateModal(true);
       return;
     }
+    const hostedSessionId = ggSession?.hostedSessionId;
+    if (hostedSessionId) {
+      const existing = await getSession(code);
+      if (!existing || isFromEarlierRoom(existing, hostedSessionId)) {
+        setWaitingForHost(true);
+        await waitForLaunchRoom(code, hostedSessionId);
+        setWaitingForHost(false);
+      }
+    }
     const exists = await checkSessionExists(code);
     if (!exists) {
       throw new Error("Game session not found or already started.");
     }
     setGameCode(code);
+    const joinKey = hostedSessionId ? `${code}_${hostedSessionId}` : code;
     try {
-      sessionStorage.setItem('guesswho_code', code);
-      localStorage.setItem('guesswho_code', code);
+      sessionStorage.setItem('guesswho_code', joinKey);
+      localStorage.setItem('guesswho_code', joinKey);
       if (p.ggEmail) {
-        localStorage.setItem(`guesswho_joined_${code}_${p.ggEmail.toLowerCase().trim()}`, 'true');
+        localStorage.setItem(`guesswho_joined_${joinKey}_${p.ggEmail.toLowerCase().trim()}`, 'true');
       }
     } catch {}
     const resolved = await joinSession(code, p);
@@ -547,6 +573,16 @@ function App() {
 
           {isHost && showEndConfirm && (
             <EndSessionModal ending={endingSession} onCancel={() => setShowEndConfirm(false)} onConfirm={handleEndSession} />
+          )}
+
+          {waitingForHost && !endedNotice && (
+            <div className="fixed inset-0 z-[120] flex items-center justify-center p-6">
+              <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+              <div className="relative bg-surface border border-border rounded-[24px] w-full max-w-[400px] mx-auto p-8 text-center">
+                <h1 className="text-white text-xl font-bold mb-3">Waiting for the host</h1>
+                <p className="text-white/70 text-[15px]">The host hasn't opened this session yet. You'll join automatically once they do.</p>
+              </div>
+            </div>
           )}
 
           {endedNotice && !isHost && <SessionEnded completed={endedNotice.completed} />}
