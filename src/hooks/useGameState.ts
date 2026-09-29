@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { database } from '../firebase';
-import { ref, set, onValue, update, get, child, increment } from 'firebase/database';
+import { ref, set, onValue, update, get, child, increment, runTransaction } from 'firebase/database';
 import type { TeamMember } from '../data';
 
 export interface PlayerState {
@@ -18,9 +18,14 @@ export interface PlayerState {
 }
 
 export interface GameSession {
-  status: 'lobby' | 'playing' | 'ended';
+  status: 'lobby' | 'playing' | 'ended' | 'expired';
   gameQueue: any[]; // will be GameRoundItem[]
   players?: Record<string, PlayerState>;
+  createdAt?: number;
+  startedAt?: number;
+  lastActivity?: number;
+  abandoned?: boolean;
+  roundStartedAt?: Record<number, number>;
 }
 
 export function useGameState(gameCode?: string) {
@@ -47,6 +52,7 @@ export function useGameState(gameCode?: string) {
     const sessionRef = ref(database, `sessions/${code}`);
     await set(sessionRef, {
       status: 'lobby',
+      createdAt: Date.now(),
       gameQueue: [],
       uploads: {},
       players: {}
@@ -105,22 +111,27 @@ export function useGameState(gameCode?: string) {
   };
 
   const updatePlayerAnswer = async (
-    code: string, 
-    nick: string, 
-    score: number, 
-    streak: number, 
-    maxStreak: number, 
+    code: string,
+    nick: string,
+    points: number,
+    streak: number,
+    maxStreak: number,
     roundIndex: number,
     isCorrect: boolean,
     factOwnerNick: string,
     totalPlayers: number
-  ) => {
+  ): Promise<boolean> => {
+    // Claim the round first so a duplicate submission (e.g. after a refresh) can't score twice.
+    const claim = await runTransaction(
+      ref(database, `sessions/${code}/players/${nick}/answers/${roundIndex}`),
+      (current) => (current === null ? isCorrect : undefined)
+    );
+    if (!claim.committed) return false;
+
     const updates: any = {};
-    updates[`sessions/${code}/players/${nick}/score`] = score;
+    updates[`sessions/${code}/players/${nick}/score`] = increment(points);
     updates[`sessions/${code}/players/${nick}/streak`] = streak;
     updates[`sessions/${code}/players/${nick}/maxStreak`] = maxStreak;
-    // Save true if correct, false if incorrect (for tracking in the UI)
-    updates[`sessions/${code}/players/${nick}/answers/${roundIndex}`] = isCorrect;
 
     // Fact owner gets points if someone guesses wrong
     if (!isCorrect && nick !== factOwnerNick) {
@@ -129,6 +140,7 @@ export function useGameState(gameCode?: string) {
     }
 
     await update(ref(database), updates);
+    return true;
   };
 
   const startGame = async (code: string, players: Record<string, PlayerState>) => {
@@ -181,6 +193,8 @@ export function useGameState(gameCode?: string) {
     const sessionRef = ref(database, `sessions/${code}`);
     await update(sessionRef, {
       status: 'playing',
+      startedAt: Date.now(),
+      roundStartedAt: null,
       gameQueue: arr
     });
   };
@@ -193,6 +207,19 @@ export function useGameState(gameCode?: string) {
     updatePlayerAnswer,
     startGame
   };
+}
+
+// First client to show a round stamps its start; everyone derives the countdown from that.
+export async function markRoundStarted(code: string, roundIndex: number): Promise<void> {
+  await runTransaction(ref(database, `sessions/${code}/roundStartedAt/${roundIndex}`), (current) => current ?? Date.now());
+}
+
+export async function touchSessionActivity(code: string): Promise<void> {
+  await update(ref(database, `sessions/${code}`), { lastActivity: Date.now() });
+}
+
+export async function markSessionExpired(code: string, abandoned: boolean): Promise<void> {
+  await update(ref(database, `sessions/${code}`), abandoned ? { status: 'expired', abandoned: true } : { status: 'expired' });
 }
 
 export async function checkSessionExists(code: string): Promise<boolean> {

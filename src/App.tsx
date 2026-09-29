@@ -8,8 +8,11 @@ import { RoundReaction } from './components/game/RoundReaction';
 import { RoundLeaderboard } from './components/game/RoundLeaderboard';
 import { EndScreen } from './components/game/EndScreen';
 import { SessionEnded } from './components/game/SessionEnded';
+import { SessionExpiredModal } from './components/game/SessionExpiredModal';
 import type { TeamMember, Opponent } from './data';
-import { useGameState, checkSessionExists } from './hooks/useGameState';
+import { useGameState, checkSessionExists, markRoundStarted, touchSessionActivity, markSessionExpired } from './hooks/useGameState';
+import { getExpiryReason, HEARTBEAT_INTERVAL_MS, EXPIRY_CHECK_INTERVAL_MS } from './lib/sessionExpiry';
+import type { ExpiryContext } from './lib/sessionExpiry';
 import { resolveGummyGumLaunch, reportGummyGumResult, returnToGummyGum } from './lib/gummygumSession';
 import type { GummyGumLaunchSession } from './lib/gummygumSession';
 
@@ -194,6 +197,38 @@ function App() {
     }
   }, [session, ggSession]);
 
+  const [expiredContext, setExpiredContext] = useState<ExpiryContext | null>(null);
+  const gameFinished = !!session?.gameQueue?.length && curQ >= session.gameQueue.length;
+
+  // Evaluated on the first snapshot, before this client's first heartbeat, so a stale room can't be masked.
+  useEffect(() => {
+    if (!gameCode || !session || expiredContext) return;
+    const check = () => {
+      const reason = getExpiryReason(session);
+      if (!reason || (reason === 'game' && gameFinished && session.status !== 'expired')) return;
+      if (session.status !== 'expired') markSessionExpired(gameCode, reason === 'game').catch(() => {});
+      setExpiredContext(reason);
+    };
+    check();
+    const interval = setInterval(check, EXPIRY_CHECK_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, [gameCode, session, expiredContext, gameFinished]);
+
+  const isPlaying = session?.status === 'playing';
+  useEffect(() => {
+    if (!gameCode || !isPlaying || expiredContext) return;
+    const interval = setInterval(() => {
+      touchSessionActivity(gameCode).catch(() => {});
+    }, HEARTBEAT_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, [gameCode, isPlaying, expiredContext]);
+
+  useEffect(() => {
+    if (screen !== 'GAME' || !gameCode || !session || session.status !== 'playing' || expiredContext) return;
+    if (curQ !== visualRound || curQ >= (session.gameQueue?.length || 0) || session.roundStartedAt?.[curQ]) return;
+    markRoundStarted(gameCode, curQ).catch(() => {});
+  }, [screen, gameCode, session, curQ, visualRound, expiredContext]);
+
   const handleHostLaunch = async (code: string) => {
     if (ggAccessState === 'denied') {
       setShowGateModal(true);
@@ -235,10 +270,10 @@ function App() {
   };
 
   const handleAnswer = async (correct: boolean, points: number) => {
-    if (!gameCode || !player || !session) return;
+    if (!gameCode || !player || !session || expiredContext) return;
     
     const myState = session.players?.[player.nick];
-    let newScore = (myState?.score || 0) + points;
+    if (typeof myState?.answers?.[curQ] !== 'undefined') return;
     let newStreak = correct ? (myState?.streak || 0) + 1 : 0;
     let newMaxStreak = Math.max(myState?.maxStreak || 0, newStreak);
     
@@ -257,7 +292,7 @@ function App() {
     await updatePlayerAnswer(
       gameCode, 
       player.nick, 
-      newScore, 
+      points, 
       newStreak, 
       newMaxStreak, 
       curQ,
@@ -463,10 +498,14 @@ function App() {
               playerAvatarId={player?.avatarId}
               onAnswer={handleAnswer}
               isHost={isHost && !player}
+              roundStartedAt={session.roundStartedAt?.[curQ]}
+              persistedAnswer={session.players?.[player?.nick || '']?.answers?.[curQ]}
             />
           )}
 
           {screen === 'SESSION_ENDED' && <SessionEnded />}
+
+          {expiredContext && <SessionExpiredModal isHost={isHost} context={expiredContext} />}
 
           {screen === 'END' && (
             <EndScreen
