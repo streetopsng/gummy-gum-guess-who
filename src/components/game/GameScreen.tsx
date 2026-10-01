@@ -58,7 +58,8 @@ export const GameScreen: React.FC<GameScreenProps> = ({
     setSelectedCard(null);
     setReveal(false);
     setIsCorrect(false);
-  }, [subject]);
+    // Keyed on the round, not the subject object, which is a new instance on every room snapshot.
+  }, [round]);
 
   useEffect(() => {
     if (isAnswered || isHost) return;
