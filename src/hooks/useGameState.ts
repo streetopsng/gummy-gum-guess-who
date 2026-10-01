@@ -68,6 +68,7 @@ export function useGameState(gameCode?: string) {
     const playersRef = ref(database, `sessions/${code}/players`);
     const playersSnapshot = await get(playersRef);
     const players: Record<string, PlayerState> = playersSnapshot.exists() ? playersSnapshot.val() : {};
+    const statusSnapshot = await get(ref(database, `sessions/${code}/status`));
 
     // A rejoin (new tab/browser, no persisted auth) is only recognizable by
     // the GummyGum-verified email — the nick is free text the guest can
@@ -77,6 +78,8 @@ export function useGameState(gameCode?: string) {
     const existingKey = findPlayerKeyByEmail(players, email);
 
     if (existingKey) return toTeamMember(players[existingKey], email);
+    // Rounds wait for every guesser, so a newcomer with no past answers would rewind the game for everyone.
+    if (statusSnapshot.val() === 'playing') throw new Error('This game has already started.');
 
     let nick = player.nick;
     if (players[nick]) {

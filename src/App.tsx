@@ -24,6 +24,9 @@ import { IconBurst, IconFlame, IconBolt } from './components/ui/Icons';
 type Screen = 'MODE_SELECT' | 'HOST_SETUP' | 'PLAYER_JOIN' | 'PLAYER_LOBBY' | 'GAME' | 'ROUND_REACTION' | 'ROUND_LEADERBOARD' | 'END';
 type GummyGumAccessState = 'checking' | 'granted' | 'denied';
 
+// Round timer plus the answer animation delay and some slack for slow clients.
+const ROUND_FORFEIT_MS = 21 * 1000;
+
 function shuffle<T>(arr: T[]): T[] {
   const result = [...arr];
   for (let i = result.length - 1; i > 0; i--) {
@@ -114,6 +117,8 @@ function App() {
     (async () => {
       if (ggSession.isHost) {
         // Host never plays — no facts, no score, never seated as a player.
+        // Storage is left alone: a participant tab in this browser may still need it.
+        setPlayerState(null);
         const hostedSessionId = ggSession.hostedSessionId;
         if (hostedSessionId) {
           const existing = await getSession(code);
@@ -186,7 +191,7 @@ function App() {
   useEffect(() => {
     if (session) {
       if (session.status === 'playing' && (screen === 'PLAYER_LOBBY' || (screen === 'PLAYER_JOIN' && getInitialPlayer()))) {
-        setScreen('GAME');
+        setScreen(session.gameQueue?.length && curQ >= session.gameQueue.length ? 'END' : 'GAME');
         setVisualRound(curQ);
       }
       if (session.status === 'playing' && screen === 'GAME' && curQ > visualRound) {
@@ -274,6 +279,23 @@ function App() {
     if (curQ !== visualRound || curQ >= (session.gameQueue?.length || 0) || session.roundStartedAt?.[curQ]) return;
     markRoundStarted(gameCode, curQ).catch(() => {});
   }, [screen, gameCode, session, curQ, visualRound, expiredContext]);
+
+  // A guesser who left never answers, which would stall the round for everyone; the host times them out.
+  useEffect(() => {
+    if (!isHost || !gameCode || !session || session.status !== 'playing' || expiredContext || endedNotice) return;
+    const subject = session.gameQueue?.[curQ];
+    const startedAt = session.roundStartedAt?.[curQ];
+    if (!subject || !startedAt) return;
+    const timer = setTimeout(() => {
+      const players = Object.values(session.players || {});
+      players
+        .filter((p) => p.nick !== subject.nick && typeof p.answers?.[curQ] === 'undefined')
+        .forEach((p) => {
+          updatePlayerAnswer(gameCode, p.nick, 0, 0, p.maxStreak || 0, curQ, false, subject.nick, players.length).catch(() => {});
+        });
+    }, Math.max(0, startedAt + ROUND_FORFEIT_MS - Date.now()));
+    return () => clearTimeout(timer);
+  }, [isHost, gameCode, session, curQ, expiredContext, endedNotice]);
 
   const handleHostLaunch = async (code: string) => {
     if (ggAccessState === 'denied') {
@@ -385,6 +407,15 @@ function App() {
   }, [session, visualRound, currentVisualSubject]);
 
   const totalPlayers = session?.players ? Object.keys(session.players).length : 0;
+
+  // Every snapshot (other players answering, heartbeats) re-renders; the choices must stay put for the round.
+  const roundSubject = session?.gameQueue?.[curQ];
+  const playerNicksKey = Object.keys(session?.players || {}).sort().join('|');
+  const roundOptions = useMemo(() => {
+    if (!roundSubject) return [];
+    const others = Object.values(session?.players || {}).filter((p) => p.nick !== roundSubject.nick);
+    return shuffle([roundSubject, ...shuffle(others).slice(0, 3)]) as TeamMember[];
+  }, [curQ, roundSubject?.nick, roundSubject?.currentFact, playerNicksKey]);
 
   // Report the launching player's (the host's) outcome back to the GummyGum
   // hub once their session reaches the final results screen. Guarded so it
@@ -564,10 +595,7 @@ function App() {
           {screen === 'GAME' && session && session.gameQueue && session.gameQueue.length > 0 && curQ < session.gameQueue.length && (
             <GameScreen 
               subject={session.gameQueue[curQ]} 
-              options={shuffle([
-                session.gameQueue[curQ], 
-                ...shuffle(Object.values(session.players || {}).filter(p => p.nick !== session.gameQueue[curQ].nick)).slice(0, 3)
-              ]) as TeamMember[]}
+              options={roundOptions}
               round={curQ + 1}
               totalRounds={session.gameQueue.length}
               score={playerScore}
