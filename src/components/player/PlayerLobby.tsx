@@ -137,7 +137,7 @@ export const PlayerLobby: React.FC<PlayerLobbyProps> = ({ player, isHost, joined
           {isHost ? (
             <div className="flex flex-col gap-2">
               <Button variant="coral" onClick={onStart} className="w-full flex items-center justify-center gap-1.5" disabled={!canStart}>Start Game Now <IconChevronRight className="w-4 h-4" /></Button>
-              {!canStart && <div className="text-[11px] text-muted text-center italic">Requires at least 5 players to start</div>}
+              {!canStart && <div className="text-[11px] text-muted text-center italic">Waiting for at least 5 participants ({joinedPlayers.length} joined)</div>}
             </div>
           ) : (
             <div className="flex items-center gap-2 mb-4">
@@ -194,7 +194,7 @@ export const PlayerLobby: React.FC<PlayerLobbyProps> = ({ player, isHost, joined
           {isHost ? (
             <div className="flex flex-col gap-2">
               <Button variant="coral" onClick={onStart} className="flex items-center justify-center gap-1.5" disabled={!canStart}>Start Game Now <IconChevronRight className="w-4 h-4" /></Button>
-              {!canStart && <div className="text-[11px] text-muted text-center italic">Requires at least 5 players to start</div>}
+              {!canStart && <div className="text-[11px] text-muted text-center italic">Waiting for at least 5 participants ({joinedPlayers.length} joined)</div>}
             </div>
           ) : (
             <div className="text-center text-muted text-[13px] italic mb-4">Waiting on host...</div>
