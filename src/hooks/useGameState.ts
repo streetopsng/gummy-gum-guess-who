@@ -4,6 +4,13 @@ import { ref, set, onValue, update, get, child, increment, runTransaction } from
 import type { TeamMember } from '../data';
 import { isFromEarlierRoom } from '../lib/sessionExpiry';
 
+export class GameInProgressError extends Error {
+  constructor() {
+    super('This game has already started.');
+    this.name = 'GameInProgressError';
+  }
+}
+
 export interface PlayerState {
   name: string;
   nick: string;
@@ -79,7 +86,7 @@ export function useGameState(gameCode?: string) {
 
     if (existingKey) return toTeamMember(players[existingKey], email);
     // Rounds wait for every guesser, so a newcomer with no past answers would rewind the game for everyone.
-    if (statusSnapshot.val() === 'playing') throw new Error('This game has already started.');
+    if (statusSnapshot.val() === 'playing') throw new GameInProgressError();
 
     let nick = player.nick;
     if (players[nick]) {
