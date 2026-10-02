@@ -1,6 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import { getDatabase } from "firebase/database";
+import { getAuth, signInAnonymously } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: "AIzaSyC3kVdN-uXwvvR8pKHbsr_lfCZfvKFEfDs",
@@ -16,5 +17,15 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 const database = getDatabase(app);
+
+const auth = getAuth(app);
+
+// Settles once signed in, or after a failure/timeout so the app still runs while rules are open.
+export const authReady = Promise.race([
+  auth.authStateReady().then(async () => {
+    if (!auth.currentUser) await signInAnonymously(auth);
+  }),
+  new Promise((resolve) => setTimeout(resolve, 8000)),
+]).catch((err) => console.warn('Firebase anonymous sign-in failed', err));
 
 export { app, analytics, database };
