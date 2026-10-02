@@ -9,9 +9,10 @@ import { RoundLeaderboard } from './components/game/RoundLeaderboard';
 import { EndScreen } from './components/game/EndScreen';
 import { SessionEnded } from './components/game/SessionEnded';
 import { SessionExpiredModal } from './components/game/SessionExpiredModal';
+import { LateJoinModal } from './components/game/LateJoinModal';
 import { EndSessionButton, EndSessionModal } from './components/host/EndSession';
 import type { TeamMember, Opponent } from './data';
-import { useGameState, checkSessionExists, getSession, findPlayerKeyByEmail, normalizeEmail, toTeamMember, stampHostedSession, waitForLaunchRoom, markRoundStarted, touchSessionActivity, markSessionExpired, markSessionEnded } from './hooks/useGameState';
+import { useGameState, GameInProgressError, checkSessionExists, getSession, findPlayerKeyByEmail, normalizeEmail, toTeamMember, stampHostedSession, waitForLaunchRoom, markRoundStarted, touchSessionActivity, markSessionExpired, markSessionEnded } from './hooks/useGameState';
 import { getExpiryReason, isFromEarlierRoom, HEARTBEAT_INTERVAL_MS, EXPIRY_CHECK_INTERVAL_MS } from './lib/sessionExpiry';
 import type { ExpiryContext } from './lib/sessionExpiry';
 import { resolveGummyGumLaunch, reportGummyGumResult, reportGummyGumCancel, returnToGummyGum } from './lib/gummygumSession';
@@ -47,6 +48,7 @@ function getInitialPlayer(): TeamMember | null {
 function App() {
   const [screen, setScreen] = useState<Screen>('MODE_SELECT');
   const [showGateModal, setShowGateModal] = useState(false);
+  const [showLateJoin, setShowLateJoin] = useState(false);
   const [toastMsg, setToastMsg] = useState<React.ReactNode>(null);
   const [flashColor, setFlashColor] = useState<'green' | 'red' | null>(null);
 
@@ -327,6 +329,16 @@ function App() {
     if (!exists) {
       throw new Error("Game session not found or already started.");
     }
+    let resolved: TeamMember;
+    try {
+      resolved = await joinSession(code, p);
+    } catch (err) {
+      if (err instanceof GameInProgressError) {
+        setShowLateJoin(true);
+        return;
+      }
+      throw err;
+    }
     setGameCode(code);
     const joinKey = hostedSessionId ? `${code}_${hostedSessionId}` : code;
     try {
@@ -336,7 +348,6 @@ function App() {
         localStorage.setItem(`guesswho_joined_${joinKey}_${p.ggEmail.toLowerCase().trim()}`, 'true');
       }
     } catch {}
-    const resolved = await joinSession(code, p);
     setPlayer(resolved);
     setScreen('PLAYER_LOBBY');
   };
@@ -632,6 +643,8 @@ function App() {
           {endedNotice && !isHost && <SessionEnded completed={endedNotice.completed} />}
 
           {expiredContext && <SessionExpiredModal isHost={isHost} context={expiredContext} />}
+
+          {showLateJoin && <LateJoinModal canReturnToHub={!!ggSession} />}
 
           {screen === 'END' && (
             <EndScreen
