@@ -11,6 +11,17 @@ export class GameInProgressError extends Error {
   }
 }
 
+async function withRetry<T>(fn: () => Promise<T>, attempts = 5, delayMs = 1000): Promise<T> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (attempt >= attempts) throw err;
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+}
+
 export interface PlayerState {
   name: string;
   nick: string;
@@ -134,10 +145,10 @@ export function useGameState(gameCode?: string) {
     totalPlayers: number
   ): Promise<boolean> => {
     // Claim the round first so a duplicate submission (e.g. after a refresh) can't score twice.
-    const claim = await runTransaction(
+    const claim = await withRetry(() => runTransaction(
       ref(database, `sessions/${code}/players/${nick}/answers/${roundIndex}`),
       (current) => (current === null ? isCorrect : undefined)
-    );
+    ));
     if (!claim.committed) return false;
 
     const updates: any = {};
@@ -151,7 +162,8 @@ export function useGameState(gameCode?: string) {
       updates[`sessions/${code}/players/${factOwnerNick}/score`] = increment(ownerPoints);
     }
 
-    await update(ref(database), updates);
+    // A rejected update was not applied, so repeating the increment can't double-score.
+    await withRetry(() => update(ref(database), updates));
     return true;
   };
 
@@ -203,12 +215,13 @@ export function useGameState(gameCode?: string) {
     }
 
     const sessionRef = ref(database, `sessions/${code}`);
-    await update(sessionRef, {
+    const startedAt = Date.now();
+    await withRetry(() => update(sessionRef, {
       status: 'playing',
-      startedAt: Date.now(),
+      startedAt,
       roundStartedAt: null,
       gameQueue: arr
-    });
+    }));
   };
 
   return {
