@@ -90,6 +90,7 @@ function App() {
   const [ggAccessState, setGgAccessState] = useState<GummyGumAccessState>('checking');
   const [ggSession, setGgSession] = useState<GummyGumLaunchSession | null>(null);
   const [waitingForHost, setWaitingForHost] = useState(false);
+  const [launchError, setLaunchError] = useState(false);
 
   // A participant must not attach to (or see ended/expired from) a room left over from an earlier run of this PIN.
   const session = roomSession && !ggSession?.isHost && isFromEarlierRoom(roomSession, ggSession?.hostedSessionId) ? null : roomSession;
@@ -168,7 +169,11 @@ function App() {
         return;
       }
       setScreen('PLAYER_JOIN');
-    })();
+    })().catch((err) => {
+      // A failed room read must not be mistaken for "no room": recreating it would wipe a game in progress.
+      console.error('Failed to open the room', err);
+      setLaunchError(true);
+    });
   }, [ggSession, screen, createSession, joinSession]);
 
   const curQ = useMemo(() => {
@@ -265,12 +270,12 @@ function App() {
 
   const isPlaying = session?.status === 'playing';
   useEffect(() => {
-    if (!gameCode || !isPlaying || expiredContext) return;
+    if (!isHost || !gameCode || !isPlaying || expiredContext) return;
     const interval = setInterval(() => {
       touchSessionActivity(gameCode).catch(() => {});
     }, HEARTBEAT_INTERVAL_MS);
     return () => clearInterval(interval);
-  }, [gameCode, isPlaying, expiredContext]);
+  }, [isHost, gameCode, isPlaying, expiredContext]);
 
   useEffect(() => {
     if (screen !== 'GAME' || !gameCode || !session || session.status !== 'playing' || expiredContext) return;
@@ -289,7 +294,10 @@ function App() {
       players
         .filter((p) => p.nick !== subject.nick && typeof p.answers?.[curQ] === 'undefined')
         .forEach((p) => {
-          updatePlayerAnswer(gameCode, p.nick, 0, 0, p.maxStreak || 0, curQ, false, subject.nick, players.length).catch(() => {});
+          updatePlayerAnswer(gameCode, p.nick, 0, 0, p.maxStreak || 0, curQ, false, subject.nick, players.length).catch((err) => {
+            console.error('Failed to time out a player', err);
+            showToast('Connection problem — the round could not move on. Reload this page.');
+          });
         });
     }, Math.max(0, startedAt + ROUND_FORFEIT_MS - Date.now()));
     return () => clearTimeout(timer);
@@ -335,7 +343,12 @@ function App() {
 
   const handleStartGame = async () => {
     if (gameCode && session && session.players) {
-      await startGame(gameCode, session.players);
+      try {
+        await startGame(gameCode, session.players);
+      } catch (err) {
+        console.error('Failed to start the game', err);
+        showToast('Could not start the game. Check your connection and try again.');
+      }
     }
   };
 
@@ -359,17 +372,22 @@ function App() {
     const currentSubject = session.gameQueue[curQ];
     const totalPlayers = session.players ? Object.keys(session.players).length : 0;
 
-    await updatePlayerAnswer(
-      gameCode, 
-      player.nick, 
-      points, 
-      newStreak, 
-      newMaxStreak, 
-      curQ,
-      correct,
-      currentSubject.nick,
-      totalPlayers
-    );
+    try {
+      await updatePlayerAnswer(
+        gameCode,
+        player.nick,
+        points,
+        newStreak,
+        newMaxStreak,
+        curQ,
+        correct,
+        currentSubject.nick,
+        totalPlayers
+      );
+    } catch (err) {
+      console.error('Failed to save the answer', err);
+      showToast('Your answer could not be saved. Check your connection.');
+    }
   };
 
   const opponents: Opponent[] = useMemo(() => {
@@ -485,6 +503,21 @@ function App() {
           <a href="https://gummygum.app">
             <Button variant="amber">Go to GummyGum</Button>
           </a>
+        </div>
+      </div>
+    );
+  }
+
+  if (launchError) {
+    return (
+      <div className="min-h-screen w-full bg-transparent font-sans flex items-center justify-center p-6">
+        <BackgroundFx />
+        <div className="relative bg-surface border border-border rounded-[24px] w-full max-w-[400px] mx-auto p-8 text-center">
+          <h1 className="text-white text-xl font-bold mb-3">Couldn't open the game</h1>
+          <p className="text-white/70 text-[15px] mb-6">
+            We couldn't reach the game room. Check your connection and reload — nothing has been lost.
+          </p>
+          <Button variant="amber" onClick={() => window.location.reload()}>Reload</Button>
         </div>
       </div>
     );
