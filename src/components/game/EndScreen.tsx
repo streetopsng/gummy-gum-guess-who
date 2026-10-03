@@ -12,8 +12,6 @@ interface EndScreenProps {
   playerColor: string;
   playerAvatarId?: string;
   opponents: Opponent[];
-  onHome?: () => void;
-  showGummyGumExit?: boolean;
   onEndSession?: () => void;
 }
 
@@ -24,8 +22,6 @@ export const EndScreen: React.FC<EndScreenProps> = ({
   playerColor,
   playerAvatarId,
   opponents,
-  onHome,
-  showGummyGumExit,
   onEndSession,
 }) => {
   const [confetti, setConfetti] = useState<{ id: number; left: number; color: string; delay: number; duration: number }[]>([]);
@@ -216,36 +212,25 @@ export const EndScreen: React.FC<EndScreenProps> = ({
           ))}
         </div>
 
-        {onHome && (
-          <div className="flex flex-col items-center gap-3 px-5 pb-8 lg:p-0 lg:mt-4 w-full shrink-0">
-            {showGummyGumExit ? (
-              <div className="flex flex-col sm:flex-row gap-2.5 w-full justify-center items-center">
-                {getGummyGumSession()?.isHost ? (
-                  <button
-                    onClick={onEndSession}
-                    className="px-6 py-3 bg-amber hover:bg-amber/90 text-black font-extrabold text-[14px] rounded-full transition-colors cursor-pointer"
-                  >
-                    End session
-                  </button>
-                ) : (
-                  <button
-                    onClick={handleParticipantLeave}
-                    className="px-6 py-3 bg-surface hover:bg-surface/80 border border-border text-white font-bold text-[14px] rounded-full transition-all cursor-pointer"
-                  >
-                    Leave Game
-                  </button>
-                )}
-              </div>
+        <div className="flex flex-col items-center gap-3 px-5 pb-8 lg:p-0 lg:mt-4 w-full shrink-0">
+          <div className="flex flex-col sm:flex-row gap-2.5 w-full justify-center items-center">
+            {getGummyGumSession()?.isHost ? (
+              <button
+                onClick={onEndSession}
+                className="px-6 py-3 bg-amber hover:bg-amber/90 text-black font-extrabold text-[14px] rounded-full transition-colors cursor-pointer"
+              >
+                End session
+              </button>
             ) : (
               <button
-                onClick={onHome}
-                className="px-6 py-3 bg-surface/50 hover:bg-surface/80 border border-border rounded-full text-[14px] font-bold text-white transition-colors cursor-pointer"
+                onClick={handleParticipantLeave}
+                className="px-6 py-3 bg-surface hover:bg-surface/80 border border-border text-white font-bold text-[14px] rounded-full transition-all cursor-pointer"
               >
-                Return to Homepage
+                Leave Game
               </button>
             )}
           </div>
-        )}
+        </div>
       </div>
 
       {showThanksModal && (
