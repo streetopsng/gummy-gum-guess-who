@@ -2,18 +2,15 @@ import React, { useState } from 'react';
 import { COLORS, makeSVG } from '../../data';
 import type { TeamMember } from '../../data';
 import { Button } from '../ui/Button';
-import { Input } from '../ui/Input';
 import { AVATAR_IDS, avatarUrl } from '../../lib/avatars';
 import { GameRulesModal } from '../GameRulesModal';
 import { IconCheck, IconChevronRight } from '../ui/Icons';
 
 interface PlayerJoinProps {
-  onBack: () => void;
   onJoin: (player: TeamMember, code: string) => Promise<void>;
-  initialCode?: string;
+  code: string;
   initialNick?: string;
   ggEmail?: string;
-  ggSession?: boolean;
 }
 
 // The nick doubles as a Realtime Database key, which cannot contain these characters.
@@ -26,10 +23,10 @@ const IconLock: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
   </svg>
 );
 
-export const PlayerJoin: React.FC<PlayerJoinProps> = ({ onBack, onJoin, initialCode, initialNick, ggEmail, ggSession }) => {
+// The avatar step for a GummyGum invitee; the room comes from the launch, never typed in.
+export const PlayerJoin: React.FC<PlayerJoinProps> = ({ onJoin, code, initialNick, ggEmail }) => {
   // GummyGum launches carry the invite name, which participants may not change.
-  const lockedNick = ggSession && initialNick ? toSafeNick(initialNick) : '';
-  const [code, setCode] = useState(initialCode || '');
+  const lockedNick = initialNick ? toSafeNick(initialNick) : '';
   const [nick, setNick] = useState(lockedNick || initialNick || '');
   const [avatarId, setAvatarId] = useState(AVATAR_IDS[0]);
   const [error, setError] = useState('');
@@ -39,7 +36,7 @@ export const PlayerJoin: React.FC<PlayerJoinProps> = ({ onBack, onJoin, initialC
 
   const handlePreJoin = () => {
     if (!code.trim() || !finalNick) {
-      setError('Please fill in all fields.');
+      setError('Please enter a codename.');
       return;
     }
 
@@ -84,23 +81,11 @@ export const PlayerJoin: React.FC<PlayerJoinProps> = ({ onBack, onJoin, initialC
         <div className="w-full max-w-[440px] mx-auto">
           <div className="text-[11px] text-amber tracking-widest uppercase font-semibold mb-1.5">Guess Who?</div>
           <h1 className="text-[26px] lg:text-[30px] font-black leading-tight">
-            {ggSession ? 'Choose your avatar' : 'Join the game'}
+            Choose your avatar
           </h1>
           <p className="text-[13px] lg:text-[14px] text-muted mt-1.5 leading-[1.5]">
-            {ggSession
-              ? 'This is how your teammates will see you during the game.'
-              : 'Enter the code your host shared, then set up how others will see you.'}
+            This is how your teammates will see you during the game.
           </p>
-
-          {!ggSession && (
-            <Input
-              className="mt-6 mb-0!"
-              placeholder="Game code (e.g. GW-491)"
-              maxLength={10}
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-            />
-          )}
 
           <div className="mt-6 bg-surface border border-border rounded-lg p-3.5 flex items-center gap-3.5">
             <img
@@ -168,11 +153,8 @@ export const PlayerJoin: React.FC<PlayerJoinProps> = ({ onBack, onJoin, initialC
         <div className="w-full max-w-[440px] mx-auto flex flex-col gap-2">
           {error && <div className="text-[12px] text-red text-center" role="alert">{error}</div>}
           <Button variant="coral" onClick={handlePreJoin} className="flex items-center justify-center gap-1.5">
-            {ggSession ? 'Continue' : 'Join game'} <IconChevronRight className="w-4 h-4" />
+            Continue <IconChevronRight className="w-4 h-4" />
           </Button>
-          {!ggSession && (
-            <Button variant="ghost" onClick={onBack} className="p-3! text-[14px]">Back to Home</Button>
-          )}
         </div>
       </div>
 

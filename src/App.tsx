@@ -1,6 +1,4 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { ModeSelect } from './components/ModeSelect';
-import { HostSetup } from './components/host/HostSetup';
 import { PlayerJoin } from './components/player/PlayerJoin';
 import { PlayerLobby } from './components/player/PlayerLobby';
 import { GameScreen } from './components/game/GameScreen';
@@ -20,9 +18,10 @@ import type { GummyGumLaunchSession } from './lib/gummygumSession';
 
 import { BackgroundFx } from './components/ui/BackgroundFx';
 import { Button } from './components/ui/Button';
+import { LoadingScreen } from './components/ui/LoadingScreen';
 import { IconBurst, IconFlame, IconBolt } from './components/ui/Icons';
 
-type Screen = 'MODE_SELECT' | 'HOST_SETUP' | 'PLAYER_JOIN' | 'PLAYER_LOBBY' | 'GAME' | 'ROUND_REACTION' | 'ROUND_LEADERBOARD' | 'END';
+type Screen = 'LOADING' | 'PLAYER_JOIN' | 'PLAYER_LOBBY' | 'GAME' | 'ROUND_REACTION' | 'ROUND_LEADERBOARD' | 'END';
 type GummyGumAccessState = 'checking' | 'granted' | 'denied';
 
 // Round timer plus the answer animation delay and some slack for slow clients.
@@ -46,8 +45,7 @@ function getInitialPlayer(): TeamMember | null {
 }
 
 function App() {
-  const [screen, setScreen] = useState<Screen>('MODE_SELECT');
-  const [showGateModal, setShowGateModal] = useState(false);
+  const [screen, setScreen] = useState<Screen>('LOADING');
   const [showLateJoin, setShowLateJoin] = useState(false);
   const [toastMsg, setToastMsg] = useState<React.ReactNode>(null);
   const [flashColor, setFlashColor] = useState<'green' | 'red' | null>(null);
@@ -108,12 +106,10 @@ function App() {
       });
   }, []);
 
-  // Skip the host/join code entry entirely once GummyGum has already told
-  // us the room and role — the player still picks a nickname/avatar on
-  // PLAYER_JOIN since GummyGum's identity doesn't map to that shape.
+  // GummyGum already told us the room and role; a new participant still picks an avatar on PLAYER_JOIN.
   const ggRoutedRef = useRef(false);
   useEffect(() => {
-    if (!ggSession || !ggSession.roomCode || ggRoutedRef.current || screen !== 'MODE_SELECT') return;
+    if (!ggSession || !ggSession.roomCode || ggRoutedRef.current || screen !== 'LOADING') return;
     ggRoutedRef.current = true;
     const code = ggSession.roomCode;
     (async () => {
@@ -299,24 +295,9 @@ function App() {
     return () => clearTimeout(timer);
   }, [isHost, gameCode, session, curQ, expiredContext, endedNotice]);
 
-  const handleHostLaunch = async (code: string) => {
-    if (ggAccessState === 'denied') {
-      setShowGateModal(true);
-      return;
-    }
-    // Host skips the participant join screen — straight to the lobby.
-    await createSession(code);
-    setGameCode(code);
-    setIsHost(true);
-    setScreen('PLAYER_LOBBY');
-  };
-
   const handlePlayerJoin = async (p: TeamMember, code: string) => {
-    if (ggAccessState === 'denied') {
-      setShowGateModal(true);
-      return;
-    }
-    const hostedSessionId = ggSession?.hostedSessionId;
+    if (!ggSession) return;
+    const hostedSessionId = ggSession.hostedSessionId;
     if (hostedSessionId) {
       const existing = await getSession(code);
       if (!existing || isFromEarlierRoom(existing, hostedSessionId)) {
@@ -492,14 +473,6 @@ function App() {
     returnToGummyGum();
   };
 
-  if (ggAccessState === 'checking') {
-    return <div className="min-h-screen w-full bg-transparent" />;
-  }
-
-  if (ggSession && ggSession.roomCode && screen === 'MODE_SELECT') {
-    return <div className="min-h-screen w-full bg-transparent" />;
-  }
-
   if (ggAccessState === 'denied') {
     return (
       <div className="min-h-screen w-full bg-transparent font-sans flex items-center justify-center p-6">
@@ -517,6 +490,11 @@ function App() {
     );
   }
 
+  // Endings and expiry still render over the loading state so a participant is never stuck on it.
+  if (ggAccessState === 'checking' || (screen === 'LOADING' && !endedNotice && !expiredContext && !showLateJoin)) {
+    return <LoadingScreen />;
+  }
+
   return (
     <div className="min-h-screen w-full relative bg-transparent font-sans flex justify-center lg:items-center">
       <BackgroundFx />
@@ -528,40 +506,12 @@ function App() {
 
       <div className="w-full h-full lg:h-auto lg:w-[1024px] lg:max-h-[85vh] lg:rounded-[24px] lg:bg-surface/60 lg:backdrop-blur-xl lg:border lg:border-white/10 lg:overflow-hidden relative flex">
         <div className="w-full flex-1 relative max-w-[430px] mx-auto lg:max-w-none">
-          {screen === 'MODE_SELECT' && (
-            <ModeSelect onSelect={(m) => setScreen(m === 'hr' ? 'HOST_SETUP' : 'PLAYER_JOIN')} />
-          )}
-
-          {showGateModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
-              <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setShowGateModal(false)} />
-              <div className="relative bg-surface border border-border rounded-[24px] w-full max-w-[400px] mx-auto p-8 text-center">
-                <h1 className="text-white text-xl font-bold mb-3">Locked</h1>
-                <p className="text-white/70 text-[15px] mb-6">
-                  This experience is only available through GummyGum.
-                </p>
-                <a href="https://gummygum.app">
-                  <Button variant="amber">Go to GummyGum</Button>
-                </a>
-              </div>
-            </div>
-          )}
-
-          {screen === 'HOST_SETUP' && (
-            <HostSetup 
-              onBack={() => setScreen('MODE_SELECT')} 
-              onLaunch={handleHostLaunch} 
-            />
-          )}
-
           {screen === 'PLAYER_JOIN' && (
             <PlayerJoin
-              onBack={() => setScreen('MODE_SELECT')}
               onJoin={handlePlayerJoin}
-              initialCode={gameCode || undefined}
+              code={gameCode || ''}
               initialNick={ggSession?.player?.name || undefined}
               ggEmail={ggSession?.player?.email || undefined}
-              ggSession={!!ggSession}
             />
           )}
 
@@ -654,13 +604,6 @@ function App() {
               playerColor={player?.color || '#000'}
               playerAvatarId={player?.avatarId}
               opponents={opponents}
-              onHome={() => {
-                setScreen('MODE_SELECT');
-                setGameCode(null);
-                setPlayer(null);
-                setIsHost(false);
-              }}
-              showGummyGumExit={!!ggSession}
               onEndSession={() => setShowEndConfirm(true)}
             />
           )}
